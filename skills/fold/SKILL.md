@@ -3,7 +3,7 @@ name: fold
 description: Submits and manages FastFold protein folding jobs via the Jobs API. Covers authentication, creating jobs, polling for completion, and fetching CIF/PDB URLs, metrics, and viewer links. Use when folding protein sequences with FastFold, calling the FastFold API, or scripting fold-and-wait workflows.
 ---
 
-# FastFold Fold Job
+# Fold 
 
 ## Overview
 

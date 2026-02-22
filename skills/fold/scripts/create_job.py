@@ -115,7 +115,7 @@ def _post_job(
 def main():
     load_dotenv()
     ap = argparse.ArgumentParser(
-        description="Create a FastFold fold job (simple mode or full JSON payload).",
+        description="Create a Fold job (simple mode or full JSON payload).",
         epilog="Full payload: use same JobInput as API/SDK (name, sequences, params; optional constraints, isPublic). See references/jobs.yaml.",
     )
     ap.add_argument("--base-url", default="https://api.fastfold.ai", help="API base URL")
