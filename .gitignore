@@ -1,0 +1,7 @@
+.DS_Store
+
+# Local env file with secrets (template: skills/fold/references/.env.example)
+.env
+
+# Python
+__pycache__/
