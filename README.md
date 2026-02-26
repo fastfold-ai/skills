@@ -53,6 +53,26 @@ Submits and manages FastFold protein folding jobs via the Jobs API. Covers authe
 
 **Requires:** `FASTFOLD_API_KEY` from `.env` or environment. Agent will ask the user to set it locally before continuing if missing.
 
+### slack_report
+
+Share markdown reports to Slack and save a copy to Fastfold library.
+
+**Use when:**
+- Sharing an agent/session report to a Slack channel
+- Posting markdown summaries to team updates
+- Saving the same report in library and Slack in one step
+
+**Features:**
+- Sends report via `POST /v1/slack/messages/agent-cli-report`
+- Uses configured `agent_cli_report` channel in Slack integrations
+- Returns friendly guidance when Slack is not configured
+- Includes library open link when `library_item_id` is returned
+
+**Scripts:**
+- `send_agent_cli_report.py` – send markdown report to Slack report channel and save to library
+
+**Requires:** `FASTFOLD_API_KEY` from environment or `.env`.
+
 ### Setting your FastFold API key
 
 Scripts automatically read `FASTFOLD_API_KEY` from a **`.env`** file in the project (current directory or any parent), so you don't need to export it in the shell.
