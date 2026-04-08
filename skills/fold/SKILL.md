@@ -258,7 +258,7 @@ Only use `cif_url`, `pdb_url`, metrics, and viewer link when status is `COMPLETE
 ## Viewer Link
 
 ```
-https://cloud.fastfold.ai/mol/new?from=jobs&job_id=<job_id>
+https://cloud.fastfold.ai/job/<job_id>?shared=true
 ```
 
 Or use: `python -m ct.skills.fold.scripts.get_viewer_link <job_id>`

@@ -6,7 +6,7 @@ the structure (must be logged in to the same account if the job is private).
 Usage:
     get_viewer_link.py JOB_ID [--base-url URL]
 
-Output: single line with URL, e.g. https://cloud.fastfold.ai/mol/new?from=jobs&job_id=550e8400-e29b-41d4-a716-446655440000
+Output: single line with URL, e.g. https://cloud.fastfold.ai/job/550e8400-e29b-41d4-a716-446655440000?shared=true
 
 Requires: Python standard library only (no external dependencies).
 Environment: FASTFOLD_API_KEY (optional; only needed if you pass --check to verify job exists).
@@ -22,7 +22,7 @@ import urllib.request
 from load_env import load_dotenv
 from security_utils import validate_base_url, validate_job_id, validate_results_payload
 
-VIEWER_URL_TEMPLATE = "https://cloud.fastfold.ai/mol/new?from=jobs&job_id={job_id}"
+VIEWER_URL_TEMPLATE = "https://cloud.fastfold.ai/job/{job_id}?shared=true"
 
 
 def get_results(base_url: str, api_key: str, job_id: str) -> dict:
