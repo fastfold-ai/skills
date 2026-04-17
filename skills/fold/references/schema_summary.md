@@ -14,7 +14,8 @@ The full OpenAPI 3.1 schema is in this skill (self-contained): **[jobs.yaml](job
 
 - **JobInput:** `name`, `sequences` (array of SequenceInput), `params` (ParamsInput with `modelName`), optional `isPublic`, `constraints`, `chatId`, `from` (library UUID).
 - **SequenceInput:** Exactly one of `proteinChain`, `rnaSequence`, `dnaSequence`, `ligandSequence`.
-- **ParamsInput:** `modelName` (enum: monomer, multimer, esm1b, boltz, boltz-2, simplefold_100M, …), optional relaxPrediction, recyclingSteps, samplingSteps, etc.
+- **ParamsInput:** `modelName` (see ModelName: `boltz-2`, `openfold3`, `chai1`, `monomer`, ...), optional `relaxPrediction`, `seed`, `recyclingSteps` / `samplingSteps` / `stepScale` / affinity fields (**Boltz**), `diffusionSample` and `numModelSeeds` (**OpenFold 3**), `numDiffnSamples` / `numTrunkSamples` / `numTrunkRecycles` / `numDiffnTimesteps` (**Chai-1**).
+- **ModificationInput:** `res_idx` (1-based), `ccd` — on protein, RNA, or DNA chains for non-canonical residues.
 - **JobResponse:** `jobId`, `jobRunId`, `jobName`, `jobStatus`, `sequencesIds`.
 - **JobStatus:** PENDING | INITIALIZED | RUNNING | COMPLETED | FAILED | STOPPED.
 - **JobResultsOutput:** `job` (JobInfoOutput), `parameters`, `sequences` (each may have `predictionPayload`), optional top-level `predictionPayload` for complex jobs.

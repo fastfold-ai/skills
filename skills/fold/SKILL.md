@@ -1,6 +1,6 @@
 ---
 name: fold
-description: Submits and manages FastFold protein folding jobs via the Jobs API. Covers authentication, creating jobs, polling for completion, and fetching CIF/PDB URLs, metrics, and viewer links. Use when folding protein sequences with FastFold, calling the FastFold API, or scripting fold-and-wait workflows.
+description: Submits and manages FastFold protein folding jobs via the Jobs API (Boltz-2, OpenFold 3, Chai-1, AlphaFold2, SimpleFold). Covers authentication, job payloads, modifications, constraints, polling, and CIF/PDB URLs. Use when folding with FastFold, OpenFold 3/Chai-1 complexes, ligands/affinity, or scripting create → wait → results.
 ---
 
 # Fold
@@ -33,19 +33,18 @@ Do **not** ask users to paste secrets in chat.
 
 ## Running Scripts
 
-The fold skill ships bundled scripts. Run them as Python modules — no hardcoded paths needed:
+Scripts live under `skills/fold/scripts/` (this skill directory). Run them with `python` from that folder (or pass the full path):
 
 ```bash
-# Find scripts location (if needed)
-python -c "import ct.skills.fold.scripts; import os; print(os.path.dirname(ct.skills.fold.scripts.__file__))"
+cd skills/fold   # or use paths like skills/fold/scripts/create_job.py
 ```
 
-- **Create job (simple):** `python -m ct.skills.fold.scripts.create_job --name "My Job" --sequence MALW... [--model boltz-2] [--public]`
-- **Create job (full payload):** `python -m ct.skills.fold.scripts.create_job --payload job.json`
-- **Wait for completion:** `python -m ct.skills.fold.scripts.wait_for_completion <job_id> [--poll-interval 5] [--timeout 900]`
-- **Fetch results (JSON):** `python -m ct.skills.fold.scripts.fetch_results <job_id>`
-- **Download CIF:** `python -m ct.skills.fold.scripts.download_cif <job_id> [--out output.cif]`
-- **Viewer link:** `python -m ct.skills.fold.scripts.get_viewer_link <job_id>`
+- **Create job (simple):** `python scripts/create_job.py --name "My Job" --sequence MALW... [--model boltz-2] [--public]`
+- **Create job (full payload):** `python scripts/create_job.py --payload job.json`
+- **Wait for completion:** `python scripts/wait_for_completion.py <job_id> [--poll-interval 5] [--timeout 900]`
+- **Fetch results (JSON):** `python scripts/fetch_results.py <job_id>`
+- **Download CIF:** `python scripts/download_cif.py <job_id> [--out output.cif]`
+- **Viewer link:** `python scripts/get_viewer_link.py <job_id>`
 
 The agent should run these scripts for the user, not hand them a list of commands.
 
@@ -53,7 +52,7 @@ The agent should run these scripts for the user, not hand them a list of command
 
 1. **Create job** — POST `/v1/jobs` with `name`, `sequences`, `params` (required).
 2. **Wait for completion** — Poll GET `/v1/jobs/{jobId}/results` until `job.status` is `COMPLETED`, `FAILED`, or `STOPPED`.
-3. **Fetch results** — For `COMPLETED` jobs: read `cif_url`, `pdb_url`, metrics, viewer link.
+3. **Fetch results** — For `COMPLETED` jobs: read `cif_url`, `pdb_url`, metrics, viewer link, and persisted `constraints` (`contact` / `pocket` / `bond`) from the same `/v1/jobs/{jobId}/results` payload.
 
 ## ⚠️ Correct Payload Field Names — Read Before Writing Any Payload
 
@@ -66,6 +65,7 @@ Common mistakes the agent must avoid:
 | `"diffusionSamples": 1` | `"diffusionSample": 1` |
 | `"ccd": "ATP"` | `"sequence": "ATP", "is_ccd": true` |
 | `"ligandSequence": {"id": "L", "ccd": "ATP"}` | `"ligandSequence": {"sequence": "ATP", "is_ccd": true}` |
+| `"modelName": "OpenFold-3"` or `"openfold-3"` | `"modelName": "openfold3"` (exact string) |
 
 ## Payload Examples
 
@@ -147,6 +147,60 @@ Key points:
 }
 ```
 
+### OpenFold 3 — protein and CCD ligand
+
+Use `modelName` **`openfold3`** (all lowercase). Tune diffusion sampling and seeds; do **not** use Boltz-only affinity params here.
+
+```json
+{
+  "name": "OpenFold 3 protein–ligand",
+  "sequences": [
+    {
+      "proteinChain": {
+        "sequence": "MTEYKLVVVGACGVGKSALTIQLIQNHFVDEYDPTIEDSYRKQVVIDGETCLLDILDTAGQEEYSAMRDQYMRTGEGFLCVFAINNTKSFEDIHHYREQIKRVKDSEDVPMVLVGNKCDLPSRTVDTKQAQDLARSYGIPFIETSAKTRQGVDDAFYTLVREIRKHKE",
+        "chain_id": "A"
+      }
+    },
+    {
+      "ligandSequence": {
+        "sequence": "ATP",
+        "is_ccd": true,
+        "chain_id": "B"
+      }
+    }
+  ],
+  "params": {
+    "modelName": "openfold3",
+    "diffusionSample": 5,
+    "numModelSeeds": 1
+  }
+}
+```
+
+### OpenFold 3 — non-canonical residue (modification)
+
+`modifications` is an array of `{ "res_idx": <1-based index>, "ccd": "<CCD code>" }` on **protein**, **RNA**, or **DNA** chains.
+
+```json
+{
+  "name": "OpenFold 3 PTM example",
+  "sequences": [
+    {
+      "proteinChain": {
+        "sequence": "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGLYTHMKALRPDEDRLSPLHSVYVDQWDWERVMGDGERQFSTLKSTVEAIWAGIKATEAAVSEEFGLAPFLPDQIHFVHSQELLSRYPDLDAKGRERAIAKDLGAVFLVGIGGKLSDGHRHDVRAPDYDDWSTPSELGHAGLNGDILVWNPVLEDAFELSSMGIRVDADTLKHQLALTGDEDRLELEWHQALLRGEMPQTIGGGIGQSRLTMLLLQLPHIGQVQAGVWPAAVRESVPSLL",
+        "chain_id": "A",
+        "modifications": [{ "res_idx": 5, "ccd": "SEP" }]
+      }
+    }
+  ],
+  "params": {
+    "modelName": "openfold3",
+    "diffusionSample": 5,
+    "numModelSeeds": 2
+  }
+}
+```
+
 ### Boltz-2 with pocket constraint
 
 ```json
@@ -219,9 +273,11 @@ Key points:
 }
 ```
 
-## Optional params fields (boltz-2)
+## Params by model
 
-All optional — omit to use defaults:
+### Boltz / Boltz-2
+
+Optional fields — omit to use defaults. **Affinity-related** keys apply only when a ligand has `property_type: "affinity"`.
 
 ```json
 {
@@ -238,6 +294,49 @@ All optional — omit to use defaults:
   }
 }
 ```
+
+### OpenFold 3 (`openfold3`)
+
+- **`diffusionSample`** — diffusion sample count for the OpenFold 3 run (server defaults apply if omitted).
+- **`numModelSeeds`** — number of model seeds (integer ≥ 1).
+- **`relaxPrediction`** — omit for OpenFold 3 (defaults to `false`); the runner does not apply structure relaxation like Boltz/AF2.
+- Do **not** expect **`recyclingSteps`**, **`samplingSteps`**, **`stepScale`**, or **affinity** fields (`samplingStepsAffinity`, `diffusionSamplesAffinity`, `affinityMwCorrection`) to affect OpenFold 3; those are for Boltz models.
+
+```json
+{
+  "params": {
+    "modelName": "openfold3",
+    "diffusionSample": 5,
+    "numModelSeeds": 1
+  }
+}
+```
+
+### Chai-1 (`chai1`)
+
+- **`numDiffnSamples`** - number of diffusion samples.
+- **`numTrunkSamples`** - number of trunk samples.
+- **`numTrunkRecycles`** - trunk recycles per sample.
+- **`numDiffnTimesteps`** - diffusion timesteps.
+- Chai-1 accepts **protein / RNA / DNA / ligand** inputs and supports `constraints.contact`, `constraints.pocket`, and `constraints.bond`.
+
+```json
+{
+  "params": {
+    "modelName": "chai1",
+    "numDiffnSamples": 5,
+    "numTrunkSamples": 1,
+    "numTrunkRecycles": 3,
+    "numDiffnTimesteps": 200
+  }
+}
+```
+
+## Ligands, affinity, and constraints
+
+- **CCD vs SMILES:** ligand `sequence` is either a **CCD code** with `"is_ccd": true` or a **SMILES** string with `is_ccd` omitted/false.
+- **Affinity (Boltz-2):** set `"property_type": "affinity"` on the **`ligandSequence`** object; never put `computeAffinity` in `params`.
+- **Constraints (`contact` / `pocket` / `bond`):** Set them in the job JSON under `constraints` (same request body as everything else). **Boltz** and **Boltz-2** use pocket/bond constraints. **Chai-1** maps contact/pocket/bond into native restraints during inference. **OpenFold 3** does not feed `constraints` into its inference input—only **sequences** and chain-level **modifications**—though the service may still persist `constraints` on the job for the UI or replay.
 
 ## Complex vs Non-Complex Jobs
 
@@ -261,7 +360,7 @@ Only use `cif_url`, `pdb_url`, metrics, and viewer link when status is `COMPLETE
 https://cloud.fastfold.ai/job/<job_id>?shared=true
 ```
 
-Or use: `python -m ct.skills.fold.scripts.get_viewer_link <job_id>`
+Or use: `python scripts/get_viewer_link.py <job_id>` (from this skill’s `scripts/` directory)
 
 ## Security Guardrails
 

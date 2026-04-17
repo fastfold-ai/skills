@@ -14,7 +14,8 @@ Supports two modes:
    echo '{"name":"...","sequences":[...],"params":{...}}' | create_job.py --payload -
 
 Full payload allows: multiple sequences (proteinChain, rnaSequence, dnaSequence, ligandSequence),
-params (modelName, relaxPrediction, recyclingSteps, samplingSteps, etc.), constraints (pocket, bond),
+params (modelName such as boltz-2 or openfold3, relaxPrediction, recyclingSteps, samplingSteps,
+diffusionSample, numModelSeeds, numDiffnSamples, numTrunkSamples, etc.), constraints (contact, pocket, bond),
 isPublic, and optional "from" (library ID). See references/jobs.yaml for schema and examples.
 
 Requires: Python standard library only (no external dependencies)

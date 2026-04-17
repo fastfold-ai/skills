@@ -52,6 +52,12 @@ def summary(data: dict) -> str:
     status = job.get("status", "UNKNOWN")
     is_complex = job.get("isComplex", False)
     lines = [f"Status: {status}", f"Complex: {is_complex}"]
+    constraints = data.get("constraints") or {}
+    if isinstance(constraints, dict) and constraints:
+        contact_n = len(constraints.get("contact") or [])
+        pocket_n = len(constraints.get("pocket") or [])
+        bond_n = len(constraints.get("bond") or [])
+        lines.append(f"Constraints: contact={contact_n}, pocket={pocket_n}, bond={bond_n}")
     if status != "COMPLETED":
         return "\n".join(lines)
     params = data.get("parameters", {})

@@ -167,6 +167,62 @@ paths:
                         chain_id: "A"
                   params:
                     modelName: "esm1b"
+              openfold3ProteinLigand:
+                summary: OpenFold 3 protein with CCD ligand
+                value:
+                  name: "OpenFold 3 protein–ligand"
+                  sequences:
+                    - proteinChain:
+                        sequence: "MTEYKLVVVGACGVGKSALTIQLIQNHFVDEYDPTIEDSYRKQVVIDGETCLLDILDTAGQEEYSAMRDQYMRTGEGFLCVFAINNTKSFEDIHHYREQIKRVKDSEDVPMVLVGNKCDLPSRTVDTKQAQDLARSYGIPFIETSAKTRQGVDDAFYTLVREIRKHKE"
+                        chain_id: "A"
+                    - ligandSequence:
+                        sequence: "ATP"
+                        is_ccd: true
+                        chain_id: "B"
+                  params:
+                    modelName: "openfold3"
+                    diffusionSample: 5
+                    numModelSeeds: 1
+              openfold3ModifiedProtein:
+                summary: OpenFold 3 with non-canonical residue (modification)
+                value:
+                  name: "OpenFold 3 PTM example"
+                  sequences:
+                    - proteinChain:
+                        sequence: "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGLYTHMKALRPDEDRLSPLHSVYVDQWDWERVMGDGERQFSTLKSTVEAIWAGIKATEAAVSEEFGLAPFLPDQIHFVHSQELLSRYPDLDAKGRERAIAKDLGAVFLVGIGGKLSDGHRHDVRAPDYDDWSTPSELGHAGLNGDILVWNPVLEDAFELSSMGIRVDADTLKHQLALTGDEDRLELEWHQALLRGEMPQTIGGGIGQSRLTMLLLQLPHIGQVQAGVWPAAVRESVPSLL"
+                        chain_id: "A"
+                        modifications:
+                          - res_idx: 5
+                            ccd: "SEP"
+                  params:
+                    modelName: "openfold3"
+                    diffusionSample: 5
+                    numModelSeeds: 2
+              chai1ProteinLigand:
+                summary: Chai-1 with protein-ligand contact constraints
+                value:
+                  name: "Chai-1 protein-ligand"
+                  sequences:
+                    - proteinChain:
+                        sequence: "MTEYKLVVVGACGVGKSALTIQLIQNHFVDEYDPTIEDSYRKQVVIDGETCLLDILDTAGQEEYSAMRDQYMRTGEGFLCVFAINNTKSFEDIHHYREQIKRVKDSEDVPMVLVGNKCDLPSRTVDTKQAQDLARSYGIPFIETSAKTRQGVDDAFYTLVREIRKHKE"
+                        chain_id: "A"
+                    - ligandSequence:
+                        sequence: "ATP"
+                        is_ccd: true
+                        chain_id: "B"
+                  params:
+                    modelName: "chai1"
+                    numDiffnSamples: 5
+                    numTrunkSamples: 1
+                    numTrunkRecycles: 3
+                    numDiffnTimesteps: 200
+                  constraints:
+                    contact:
+                      - chainA: "A"
+                        res_idxA: 35
+                        chainB: "A"
+                        res_idxB: 40
+                        distance: 5.0
               monomerAlphaFold2:
                 summary: Monomer AlphaFold2
                 value:
@@ -354,6 +410,13 @@ paths:
                       affinity_result_raw_json:
                         affinity_pred_value: 0.9314461946487427
                         affinity_probability_binary: 0.38347506523132324
+                    constraints:
+                      contact:
+                        - chainA: "A"
+                          res_idxA: 35
+                          chainB: "B"
+                          res_idxB: 40
+                          distance: 5.0
                 nonComplexJob:
                   summary: Non-complex job (per-sequence predictionPayload)
                   value:
@@ -582,7 +645,10 @@ components:
         modifications:
           type: array
           nullable: true
-          description: List of modifications to apply
+          description: |
+            Non-canonical residues for polymer chains: each entry is a 1-based `res_idx` and a CCD
+            `ccd` code. Supported on protein, RNA, and DNA chains. Used by Boltz/Boltz-2 inference
+            and mapped to `non_canonical_residues` for OpenFold 3.
           items:
             $ref: '#/components/schemas/ModificationInput'
 
@@ -617,6 +683,8 @@ components:
         modifications:
           type: array
           nullable: true
+          description: |
+            Non-canonical residues (1-based `res_idx`, CCD `ccd`). See `ProteinChainInput.modifications`.
           items:
             $ref: '#/components/schemas/ModificationInput'
 
@@ -649,6 +717,8 @@ components:
         modifications:
           type: array
           nullable: true
+          description: |
+            Non-canonical residues (1-based `res_idx`, CCD `ccd`). See `ProteinChainInput.modifications`.
           items:
             $ref: '#/components/schemas/ModificationInput'
 
@@ -656,10 +726,14 @@ components:
       type: object
       required:
         - sequence
+      description: |
+        Small-molecule ligand. Use `is_ccd: true` and a CCD code in `sequence` (e.g. `ATP`), or omit
+        `is_ccd` / set `false` and pass a **SMILES** string. For **binding affinity** with Boltz-2,
+        set `property_type` to `affinity` on this object (not in `params`).
       properties:
         sequence:
           type: string
-          description: Ligand sequence or CCD code
+          description: SMILES string, or CCD code when `is_ccd` is true
           example: "HEM"
         chain_id:
           type: string
@@ -674,10 +748,12 @@ components:
         property_type:
           type: string
           nullable: true
+          description: |
+            Use `affinity` on Boltz-2 to request co-folding affinity prediction for this ligand.
         is_ccd:
           type: boolean
           nullable: true
-          description: Whether the sequence is a CCD code
+          description: If true, `sequence` is a Chemical Component Dictionary code, not SMILES
           default: false
 
     ModificationInput:
@@ -685,16 +761,17 @@ components:
       required:
         - res_idx
         - ccd
+      description: Non-canonical residue at a specific sequence position (1-based index).
       properties:
         res_idx:
           type: integer
-          description: Residue index (1-based)
+          description: Residue index in the chain sequence (1-based)
           minimum: 1
           example: 5
         ccd:
           type: string
-          description: Chemical Component Dictionary code for the modification
-          example: "PTM"
+          description: Chemical Component Dictionary (CCD) code for the modified residue
+          example: "SEP"
 
     ParamsInput:
       type: object
@@ -712,7 +789,10 @@ components:
         relaxPrediction:
           type: boolean
           default: false
-          description: Whether to relax the prediction structure
+          description: |
+            Whether to relax the predicted structure. Used by AlphaFold2, ESM, Boltz, and SimpleFold
+            pipelines. For **OpenFold 3**, omit this field (defaults to `false`); the OpenFold 3 runner
+            does not use this flag.
         seed:
           type: string
           nullable: true
@@ -721,45 +801,80 @@ components:
         recyclingSteps:
           type: integer
           nullable: true
-          description: Number of recycling steps (for Boltz models)
+          description: Number of recycling steps (**Boltz / Boltz-2 only**)
           minimum: 1
           example: 3
         samplingSteps:
           type: integer
           nullable: true
-          description: Number of sampling steps (for Boltz models)
+          description: Number of sampling steps (**Boltz / Boltz-2 only**)
           minimum: 1
           example: 10
         diffusionSample:
           type: integer
           nullable: true
-          description: Number of diffusion samples (for Boltz models)
+          description: |
+            Number of diffusion samples. For **Boltz / Boltz-2**, controls diffusion sampling for the
+            structure run. For **OpenFold 3** (`modelName` `openfold3`), maps to the runner's
+            diffusion sample count (e.g. default 5 when omitted).
           minimum: 1
-          example: 1
+          example: 5
         stepScale:
           type: number
           format: float
           nullable: true
-          description: Step scale factor (for Boltz models)
+          description: Step scale factor (**Boltz / Boltz-2 only**)
           minimum: 0
           example: 0.1
         affinityMwCorrection:
           type: boolean
           nullable: true
-          description: Apply molecular weight correction for affinity (for Boltz models)
+          description: Apply molecular weight correction for affinity (**Boltz / Boltz-2 only**)
           default: false
         samplingStepsAffinity:
           type: integer
           nullable: true
-          description: Number of sampling steps for affinity (for Boltz models)
+          description: Sampling steps for affinity prediction (**Boltz / Boltz-2 only**)
           minimum: 1
           example: 5
         diffusionSamplesAffinity:
           type: integer
           nullable: true
-          description: Number of diffusion samples for affinity (for Boltz models)
+          description: Diffusion samples for affinity prediction (**Boltz / Boltz-2 only**)
           minimum: 1
           example: 1
+        numModelSeeds:
+          type: integer
+          nullable: true
+          description: |
+            Number of model seeds (**OpenFold 3**). Ignored or unused for other models in this API
+            surface; omit unless using `modelName` `openfold3`.
+          minimum: 1
+          example: 1
+        numDiffnSamples:
+          type: integer
+          nullable: true
+          description: Number of diffusion samples (**Chai-1 only**)
+          minimum: 1
+          example: 5
+        numTrunkSamples:
+          type: integer
+          nullable: true
+          description: Number of trunk samples (**Chai-1 only**)
+          minimum: 1
+          example: 1
+        numTrunkRecycles:
+          type: integer
+          nullable: true
+          description: Number of trunk recycles per sample (**Chai-1 only**)
+          minimum: 1
+          example: 3
+        numDiffnTimesteps:
+          type: integer
+          nullable: true
+          description: Number of diffusion timesteps (**Chai-1 only**)
+          minimum: 1
+          example: 200
 
     ModelName:
       type: string
@@ -769,6 +884,8 @@ components:
         - esm1b
         - boltz
         - boltz-2
+        - openfold3
+        - chai1
         - simplefold_100M
         - simplefold_360M
         - simplefold_700M
@@ -781,13 +898,22 @@ components:
         - `multimer`: AlphaFold2 for protein complexes
         - `esm1b`: ESM-1b language model
         - `boltz`: Boltz model for protein folding
-        - `boltz-2`: Enhanced Boltz-2 model
+        - `boltz-2`: Enhanced Boltz-2 (ligands, affinity, pockets/bonds; advanced params below)
+        - `openfold3`: OpenFold 3 for biomolecular complexes (protein, DNA, RNA, ligand); use
+          `diffusionSample` and `numModelSeeds`; omit `relaxPrediction` and other Boltz-only params
+        - `chai1`: Chai-1 for multimolecular folding with optional contact/pocket/covalent constraints;
+          use `numDiffnSamples`, `numTrunkSamples`, `numTrunkRecycles`, `numDiffnTimesteps`
         - `simplefold_*`: SimpleFold models of varying sizes (100M to 3B parameters)
       example: "monomer"
 
     ConstraintsInput:
       type: object
-      description: Optional constraints to apply during folding
+      description: |
+        Optional pocket and bond constraints in the **job JSON**. **Boltz** and **Boltz-2** apply
+        these during inference. **Chai-1** maps `contact`, `pocket`, and `bond` into native restraints
+        CSV rows. **OpenFold 3** does not use `constraints` in its inference input
+        (only sequences and chain-level modifications); values may still be stored on the job for
+        the UI or replay.
       properties:
         pocket:
           type: array
@@ -801,6 +927,12 @@ components:
           description: Bond constraints between atoms
           items:
             $ref: '#/components/schemas/BondItemInput'
+        contact:
+          type: array
+          nullable: true
+          description: Pairwise residue contact constraints
+          items:
+            $ref: '#/components/schemas/ContactConstraintInput'
 
     PocketItemInput:
       type: object
@@ -852,6 +984,42 @@ components:
           $ref: '#/components/schemas/AtomReferenceInput'
         atom2:
           $ref: '#/components/schemas/AtomReferenceInput'
+
+    ContactConstraintInput:
+      type: object
+      required:
+        - chainA
+        - res_idxA
+        - chainB
+        - res_idxB
+      properties:
+        chainA:
+          type: string
+          description: Chain ID for the first residue
+          example: "A"
+        res_idxA:
+          type: integer
+          description: Residue index (1-based) for the first residue
+          minimum: 1
+          example: 35
+        chainB:
+          type: string
+          description: Chain ID for the second residue
+          example: "B"
+        res_idxB:
+          type: integer
+          description: Residue index (1-based) for the second residue
+          minimum: 1
+          example: 40
+        distance:
+          type: number
+          format: float
+          nullable: true
+          description: |
+            Target distance in Angstroms for contact restraints. Used by Chai-1; if omitted,
+            the runtime default is applied.
+          minimum: 0
+          example: 5.0
 
     AtomReferenceInput:
       type: object
@@ -1080,6 +1248,9 @@ components:
             $ref: '#/components/schemas/JobSequenceOutput'
         predictionPayload:
           $ref: '#/components/schemas/PredictionPayload'
+          nullable: true
+        constraints:
+          $ref: '#/components/schemas/ConstraintsInput'
           nullable: true
 
     JobInfoOutput:
