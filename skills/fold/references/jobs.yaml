@@ -285,6 +285,20 @@ paths:
                         chain_id: "A"
                   params:
                     modelName: "simplefold_100M"
+              boltz2WithEvollaWebhook:
+                summary: Boltz-2 job with current Evolla webhook option
+                value:
+                  name: "Boltz-2 with Evolla webhook"
+                  sequences:
+                    - proteinChain:
+                        sequence: "MGLSDGEWQLVLNVWGKVEADIPGHGQEVLIRLFKGHPETLERFDKFKHLKSEDEMKASEDLKKHGATVLTALGGILKKKGHHEAEIKPLAQSHATKHKIPVKYLEFISECIIQVLQSKHPGDFGADAQRAMNKALELFRKDMASNYKELGFQG"
+                        chain_id: "A"
+                  params:
+                    modelName: "boltz-2"
+                  constraints:
+                    webhooks:
+                      auto_evolla_chat_on_complete: true
+                      evolla_initial_question: "What is the function of this protein?"
       responses:
         '200':
           description: Job created successfully
@@ -886,6 +900,7 @@ components:
         - boltz-2
         - openfold3
         - chai1
+        - intellifold
         - simplefold_100M
         - simplefold_360M
         - simplefold_700M
@@ -903,14 +918,16 @@ components:
           `diffusionSample` and `numModelSeeds`; omit `relaxPrediction` and other Boltz-only params
         - `chai1`: Chai-1 for multimolecular folding with optional contact/pocket/covalent constraints;
           use `numDiffnSamples`, `numTrunkSamples`, `numTrunkRecycles`, `numDiffnTimesteps`
+        - `intellifold`: IntelliFold for biomolecular complexes (Boltz-compatible YAML input); optional
+          `recyclingSteps`, `samplingSteps`, `diffusionSample` map to IntelliFold runtime flags
         - `simplefold_*`: SimpleFold models of varying sizes (100M to 3B parameters)
       example: "monomer"
 
     ConstraintsInput:
       type: object
       description: |
-        Optional pocket and bond constraints in the **job JSON**. **Boltz** and **Boltz-2** apply
-        these during inference. **Chai-1** maps `contact`, `pocket`, and `bond` into native restraints
+        Optional pocket and bond constraints in the **job JSON**. **Boltz**, **Boltz-2**, and **IntelliFold**
+        apply these during inference (YAML). **Chai-1** maps `contact`, `pocket`, and `bond` into native restraints
         CSV rows. **OpenFold 3** does not use `constraints` in its inference input
         (only sequences and chain-level modifications); values may still be stored on the job for
         the UI or replay.
@@ -933,6 +950,30 @@ components:
           description: Pairwise residue contact constraints
           items:
             $ref: '#/components/schemas/ContactConstraintInput'
+        webhooks:
+          type: object
+          nullable: true
+          description: |
+            Optional post-completion automation metadata.
+
+            Current webhook catalog has **one option** (Evolla auto-chat). The `constraints.webhooks`
+            object is intentionally extensible so additional webhook options can be added in future releases.
+
+            Current supported fields:
+            - `auto_evolla_chat_on_complete` (boolean): when true, trigger linked Evolla chat after fold completion.
+            - `evolla_initial_question` (string): initial Evolla question.
+          additionalProperties: true
+          properties:
+            auto_evolla_chat_on_complete:
+              type: boolean
+              default: false
+              description: |
+                Enable/disable Evolla auto-chat webhook (current webhook option).
+            evolla_initial_question:
+              type: string
+              nullable: true
+              description: |
+                Optional initial question passed to Evolla.
 
     PocketItemInput:
       type: object
