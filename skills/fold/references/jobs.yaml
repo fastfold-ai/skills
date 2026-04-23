@@ -297,8 +297,9 @@ paths:
                     modelName: "boltz-2"
                   constraints:
                     webhooks:
-                      auto_evolla_chat_on_complete: true
-                      evolla_initial_question: "What is the function of this protein?"
+                      evolla:
+                        enabled: true
+                        initial_question: "What is the function of this protein?"
       responses:
         '200':
           description: Job created successfully
@@ -960,20 +961,26 @@ components:
             object is intentionally extensible so additional webhook options can be added in future releases.
 
             Current supported fields:
-            - `auto_evolla_chat_on_complete` (boolean): when true, trigger linked Evolla chat after fold completion.
-            - `evolla_initial_question` (string): initial Evolla question.
+            - `evolla.enabled` (boolean): when true, trigger linked Evolla chat after fold completion.
+            - `evolla.initial_question` (string): initial Evolla question.
           additionalProperties: true
           properties:
-            auto_evolla_chat_on_complete:
-              type: boolean
-              default: false
-              description: |
-                Enable/disable Evolla auto-chat webhook (current webhook option).
-            evolla_initial_question:
-              type: string
+            evolla:
+              type: object
               nullable: true
-              description: |
-                Optional initial question passed to Evolla.
+              description: Evolla webhook configuration.
+              additionalProperties: true
+              properties:
+                enabled:
+                  type: boolean
+                  default: false
+                  description: |
+                    Enable/disable Evolla auto-chat webhook (current webhook option).
+                initial_question:
+                  type: string
+                  nullable: true
+                  description: |
+                    Optional initial question passed to Evolla.
 
     PocketItemInput:
       type: object

@@ -70,16 +70,16 @@ Use this when users want automatic post-fold interpretation in natural language.
 **What the webhook is for**
 - It automatically starts Evolla right after fold completion.
 - It does not change the fold artifacts (`cif_url`, `pdb_url`, metrics); it adds linked chat workflows and answers.
-- There is **one webhook option today**: Evolla auto-chat (`auto_evolla_chat_on_complete`).
+- There is **one webhook option today**: nested Evolla webhook (`webhooks.evolla.enabled`).
 - `constraints.webhooks` is intentionally extensible and may include more webhook options in future versions.
 
 Create jobs with:
 
-`constraints.webhooks.auto_evolla_chat_on_complete = true`
+`constraints.webhooks.evolla.enabled = true`
 
 and optionally:
 
-`constraints.webhooks.evolla_initial_question = "What is the function of this protein?"`
+`constraints.webhooks.evolla.initial_question = "What is the function of this protein?"`
 
 **How to read webhook results (end-to-end):**
 
@@ -407,7 +407,7 @@ Optional fields — omit to use defaults. **Affinity-related** keys apply only w
 - **CCD vs SMILES:** ligand `sequence` is either a **CCD code** with `"is_ccd": true` or a **SMILES** string with `is_ccd` omitted/false.
 - **Affinity (Boltz-2):** set `"property_type": "affinity"` on the **`ligandSequence`** object; never put `computeAffinity` in `params`.
 - **Constraints (`contact` / `pocket` / `bond`):** Set them in the job JSON under `constraints` (same request body as everything else). **Boltz**, **Boltz-2**, and **IntelliFold** use pocket/bond constraints in YAML. **Chai-1** maps contact/pocket/bond into native restraints during inference. **OpenFold 3** does not feed `constraints` into its inference input—only **sequences** and chain-level **modifications**—though the service may still persist `constraints` on the job for the UI or replay.
-- **Webhook automation (current):** `constraints.webhooks.auto_evolla_chat_on_complete: true` enables Evolla auto-chat after fold completion; optional `constraints.webhooks.evolla_initial_question` sets the first question. This is the single webhook option today; future webhook options may be added under `constraints.webhooks`.
+- **Webhook automation (current):** `constraints.webhooks.evolla.enabled: true` enables Evolla auto-chat after fold completion; optional `constraints.webhooks.evolla.initial_question` sets the first question. This is the single webhook option today; future webhook options may be added under `constraints.webhooks`.
 
 ## Complex vs Non-Complex Jobs
 

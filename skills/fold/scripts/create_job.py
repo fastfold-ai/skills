@@ -18,8 +18,9 @@ params (modelName such as boltz-2, openfold3, chai1, or intellifold; relaxPredic
 diffusionSample, numModelSeeds, numDiffnSamples, numTrunkSamples, etc.), constraints (contact, pocket, bond, webhooks),
 isPublic, and optional "from" (library ID). See references/jobs.yaml for schema and examples.
 
-Webhook notes: `constraints.webhooks` currently supports Evolla auto-chat (`auto_evolla_chat_on_complete`)
-with optional `evolla_initial_question`. Additional webhook options may be added in future versions.
+Webhook notes: `constraints.webhooks` currently supports nested Evolla auto-chat:
+`webhooks.evolla.enabled` (bool) plus optional `webhooks.evolla.initial_question` (string).
+Additional webhook targets may be added under `constraints.webhooks` in future versions.
 
 Requires: Python standard library only (no external dependencies)
 Environment: FASTFOLD_API_KEY
