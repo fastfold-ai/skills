@@ -6,8 +6,8 @@ Stages:
   1. Poll /v1/workflows/status/<id> with bounded timeout until terminal state
      (COMPLETED, FAILED, STOPPED).
   2. If the task completed, poll /v1/workflows/public/<id> (public, no auth)
-     or /v1/workflows/task-results/<id> (auth) until artifacts and metrics
-     populate in result_raw_json (bounded by --metrics-timeout).
+     or /v1/workflows/<id> (authed) until artifacts and metrics populate in
+     result_raw_json (bounded by --metrics-timeout).
 
 Exit codes:
   0 - terminal COMPLETED with metrics populated (or COMPLETED and metrics window exceeded)
@@ -55,10 +55,14 @@ def _fetch_workflow_payload(
             api_key=api_key,
             auth=False,
         )
+    # GET /v1/workflows/{id} returns the full workflow including
+    # tasks[-1].result_raw_json, which is where artifacts/metrics land.
+    # The /task-results endpoint intentionally omits result_raw_json, so
+    # it can't be used to detect metrics settling.
     return http_json(
         base_url,
         "GET",
-        f"/v1/workflows/task-results/{workflow_id}",
+        f"/v1/workflows/{workflow_id}",
         api_key=api_key,
     )
 
@@ -146,19 +150,9 @@ def main() -> None:
     final_summary: dict = {}
     while True:
         final_payload = _fetch_workflow_payload(base_url, api_key, workflow_id, is_public=args.public)
-        if args.public:
-            final_summary = _latest_task_summary(final_payload)
-        else:
-            tasks = (
-                final_payload.get("tasksResults")
-                if isinstance(final_payload.get("tasksResults"), list)
-                else []
-            )
-            latest = tasks[-1] if tasks else {}
-            result_raw = latest.get("result_raw_json") if isinstance(latest, dict) else {}
-            final_summary = summarize_task_result(result_raw)
-            final_summary["workflow_status"] = status
-            final_summary["task_status"] = latest.get("status") if isinstance(latest, dict) else None
+        # Both public and authed endpoints now return a workflow-shaped
+        # payload with `tasks[]` where the latest task has `result_raw_json`.
+        final_summary = _latest_task_summary(final_payload)
 
         if final_summary.get("has_metrics") and final_summary.get("artifact_count"):
             break
@@ -180,9 +174,9 @@ def main() -> None:
             sys.exit(3)
         time.sleep(max(1.0, float(args.poll_interval)))
 
-    # Try to detect isPublic flag from the final payload for the public link.
+    # Detect isPublic flag from the final payload for the public link.
     is_public = False
-    if args.public and isinstance(final_payload, dict):
+    if isinstance(final_payload, dict):
         input_payload = final_payload.get("input_payload") if isinstance(final_payload.get("input_payload"), dict) else {}
         if isinstance(input_payload, dict):
             is_public = bool(input_payload.get("isPublic"))

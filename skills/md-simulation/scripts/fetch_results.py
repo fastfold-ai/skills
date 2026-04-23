@@ -2,9 +2,10 @@
 """
 Fetch final MD workflow results: status, artifacts, and metrics summary.
 
-By default, reads `/v1/workflows/task-results/<id>` (authed) to get per-task
-output. With `--public`, reads `/v1/workflows/public/<id>` to get the full
-`result_raw_json` including artifact URLs, `metrics`, and `metricsJson`.
+By default, reads `/v1/workflows/<id>` (authed) to get the full workflow
+including `tasks[-1].result_raw_json` (artifacts, `metrics`, `metricsJson`).
+With `--public`, reads `/v1/workflows/public/<id>` (no auth) for the same
+shape on public workflows.
 
 Environment: FASTFOLD_API_KEY (see load_env.py for resolution order).
 """
@@ -85,33 +86,27 @@ def main() -> None:
             api_key=api_key,
             auth=False,
         )
-        input_payload = payload.get("input_payload") if isinstance(payload.get("input_payload"), dict) else {}
-        is_public_workflow = bool(input_payload.get("isPublic")) if isinstance(input_payload, dict) else True
-        tasks = payload.get("tasks") if isinstance(payload.get("tasks"), list) else []
-        latest = tasks[-1] if tasks else {}
-        result_raw = latest.get("result_raw_json") if isinstance(latest, dict) else {}
-        task_summary = summarize_task_result(result_raw)
-        task_summary["task_status"] = latest.get("status") if isinstance(latest, dict) else None
-        summary["result_summary"] = task_summary
     else:
+        # GET /v1/workflows/{id} returns the full workflow, including
+        # tasks[-1].result_raw_json which carries artifacts and metrics.
         payload = http_json(
             base_url,
             "GET",
-            f"/v1/workflows/task-results/{workflow_id}",
+            f"/v1/workflows/{workflow_id}",
             api_key=api_key,
         )
-        tasks = (
-            payload.get("tasksResults") if isinstance(payload.get("tasksResults"), list) else []
-        )
-        latest = tasks[-1] if tasks else {}
-        result_raw = latest.get("result_raw_json") if isinstance(latest, dict) else {}
-        task_summary = summarize_task_result(result_raw)
-        task_summary["task_status"] = latest.get("status") if isinstance(latest, dict) else None
-        task_summary["output_library_items"] = (
-            latest.get("output_library_items") if isinstance(latest, dict) else None
-        )
-        summary["result_summary"] = task_summary
 
+    input_payload = payload.get("input_payload") if isinstance(payload.get("input_payload"), dict) else {}
+    is_public_workflow = bool(input_payload.get("isPublic")) if isinstance(input_payload, dict) else args.public
+    tasks = payload.get("tasks") if isinstance(payload.get("tasks"), list) else []
+    latest = tasks[-1] if tasks else {}
+    result_raw = latest.get("result_raw_json") if isinstance(latest, dict) else {}
+    task_summary = summarize_task_result(result_raw)
+    task_summary["task_status"] = latest.get("status") if isinstance(latest, dict) else None
+    task_summary["output_library_items"] = (
+        latest.get("output_library_items") if isinstance(latest, dict) else None
+    )
+    summary["result_summary"] = task_summary
     summary["links"] = build_result_links(workflow_id, is_public=is_public_workflow)
 
     if args.json:
