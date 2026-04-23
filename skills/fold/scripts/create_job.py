@@ -28,13 +28,12 @@ Environment: FASTFOLD_API_KEY
 
 import argparse
 import json
-import os
 import sys
 import urllib.error
 import urllib.request
 
 # Load .env from project root so FASTFOLD_API_KEY can be set there
-from load_env import load_dotenv
+from load_env import resolve_fastfold_api_key
 from security_utils import validate_base_url, validate_results_payload
 
 
@@ -118,7 +117,6 @@ def _post_job(
 
 
 def main():
-    load_dotenv()
     ap = argparse.ArgumentParser(
         description="Create a Fold job (simple mode or full JSON payload).",
         epilog="Full payload: use same JobInput as API/SDK (name, sequences, params; optional constraints, isPublic). See references/jobs.yaml.",
@@ -146,9 +144,12 @@ def main():
 
     args = ap.parse_args()
 
-    api_key = os.environ.get("FASTFOLD_API_KEY")
+    api_key = resolve_fastfold_api_key()
     if not api_key:
-        sys.exit("Error: Set FASTFOLD_API_KEY in .env or environment.")
+        sys.exit(
+            "Error: FASTFOLD_API_KEY is not configured. "
+            "Set it in env/.env or FastFold CLI config."
+        )
     base_url = validate_base_url(args.base_url)
 
     if args.payload is not None:

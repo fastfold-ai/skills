@@ -42,11 +42,19 @@ cd skills/fold   # or use paths like skills/fold/scripts/create_job.py
 - **Create job (simple):** `python scripts/create_job.py --name "My Job" --sequence MALW... [--model boltz-2] [--public]`
 - **Create job (full payload):** `python scripts/create_job.py --payload job.json`
 - **Wait for completion:** `python scripts/wait_for_completion.py <job_id> [--poll-interval 5] [--timeout 900]`
+- **Wait for fold + linked Evolla answers (preferred for webhook flows):** `python scripts/wait_for_evolla_linked.py <job_id> --json [--evolla-timeout 300] [--max-not-found-polls 8]` (defaults to one representative source sequence; add `--all-sequences` only when you explicitly need per-sequence polling)
 - **Fetch results (JSON):** `python scripts/fetch_results.py <job_id>`
 - **Download CIF:** `python scripts/download_cif.py <job_id> [--out output.cif]`
 - **Viewer link:** `python scripts/get_viewer_link.py <job_id>`
 
 The agent should run these scripts for the user, not hand them a list of commands.
+
+### Agent execution guardrails (required)
+
+- Run scripts directly from this skill (`python scripts/<script>.py ...`), never via path-discovery commands such as `find`.
+- Do not generate temporary monitor scripts in `/tmp`; use `wait_for_evolla_linked.py`.
+- Use bounded waits (`--timeout` and `--evolla-timeout`) instead of open-ended loops.
+- Treat `workflowStatus == NOT_FOUND` as a signal that Evolla linkage is missing/delayed, not as a reason to keep polling indefinitely.
 
 ## Workflow: Create → Wait → Results
 
@@ -57,6 +65,13 @@ The agent should run these scripts for the user, not hand them a list of command
 ### Optional chain: Fold completion -> Evolla completion -> answer
 
 Use this when users want automatic post-fold interpretation in natural language.
+
+**Most efficient path (single waiter command):**
+
+1. Submit fold job with webhook constraints.
+2. Run:
+   - `python scripts/wait_for_evolla_linked.py <job_id> --json --evolla-timeout 300 --max-not-found-polls 8`
+3. Read fold + Evolla answer(s) from that single command output.
 
 **What is Evolla?**
 - Evolla is FastFold's protein-chat workflow. It uses the folded structure as context and answers questions (for example: function summary, mechanism hints, or other protein Q&A).
@@ -91,6 +106,10 @@ and optionally:
    - `workflowStatus` is terminal (`COMPLETED` / `FAILED` / `STOPPED`) and
    - `lastAnswer` is present.
 5. Return `lastAnswer` as the Evolla response for that sequence.
+
+If the waiter returns `workflowStatus: "NOT_FOUND"` for a sequence, stop polling and verify that the submitted job included:
+- `constraints.webhooks.evolla.enabled: true`
+- (optional) `constraints.webhooks.evolla.initial_question`
 
 **Field mapping (important):**
 - Fold output: `/v1/jobs/{jobId}/results`

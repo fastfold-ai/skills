@@ -6,7 +6,9 @@ for .env; only sets variables that are not already in os.environ.
 Usage: Call load_dotenv() at the start of main() before reading os.environ.
 """
 
+import json
 import os
+from pathlib import Path
 
 
 def load_dotenv() -> None:
@@ -21,6 +23,42 @@ def load_dotenv() -> None:
         if os.path.isfile(env_path):
             _parse_and_set(env_path)
             return
+
+
+def resolve_fastfold_api_key() -> str | None:
+    """
+    Resolve FASTFOLD_API_KEY from existing local configuration.
+
+    Resolution order:
+    1. FASTFOLD_API_KEY from environment (if already present)
+    2. .env in current directory or parent directories
+    3. ~/.fastfold-cli/config.json -> api.fastfold_cloud_key
+
+    Returns None when key cannot be resolved.
+    """
+    api_key = (os.environ.get("FASTFOLD_API_KEY") or "").strip()
+    if api_key:
+        return api_key
+
+    load_dotenv()
+    api_key = (os.environ.get("FASTFOLD_API_KEY") or "").strip()
+    if api_key:
+        return api_key
+
+    config_path = Path.home() / ".fastfold-cli" / "config.json"
+    if not config_path.exists():
+        return None
+    try:
+        raw = json.loads(config_path.read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):
+            return None
+        cfg_key = str(raw.get("api.fastfold_cloud_key") or "").strip()
+        if not cfg_key:
+            return None
+        os.environ["FASTFOLD_API_KEY"] = cfg_key
+        return cfg_key
+    except Exception:
+        return None
 
 
 def _parse_and_set(env_path: str) -> None:
