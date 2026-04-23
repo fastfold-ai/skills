@@ -14,8 +14,9 @@ Supports two modes:
    echo '{"name":"...","sequences":[...],"params":{...}}' | create_job.py --payload -
 
 Full payload allows: multiple sequences (proteinChain, rnaSequence, dnaSequence, ligandSequence),
-params (modelName such as boltz-2, openfold3, chai1, or intellifold; relaxPrediction, recyclingSteps, samplingSteps,
-diffusionSample, numModelSeeds, numDiffnSamples, numTrunkSamples, etc.), constraints (contact, pocket, bond, webhooks),
+params (modelName: boltz-2, openfold3, chai1, intellifold, monomer, multimer, esm1b, boltz, simplefold_100M ... simplefold_3B;
+relaxPrediction, recyclingSteps, samplingSteps, diffusionSample, numModelSeeds, numDiffnSamples, numTrunkSamples, etc.),
+constraints (contact, pocket, bond, webhooks),
 isPublic, and optional "from" (library ID). See references/jobs.yaml for schema and examples.
 
 Webhook notes: `constraints.webhooks` currently supports nested Evolla auto-chat:

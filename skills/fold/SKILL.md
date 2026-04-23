@@ -345,6 +345,22 @@ Use `modelName` **`openfold3`** (all lowercase). Tune diffusion sampling and see
 }
 ```
 
+### ESMFold (`esm1b`)
+
+ESMFold is Meta's single-chain structure predictor that runs off ESM embeddings with OpenFold weights. Whenever the user says **"ESM"**, **"ESMFold"**, or **"ESM-1b"**, submit with `modelName: "esm1b"`. It is a real, supported FastFold model — do not claim it's unavailable.
+
+```json
+{
+  "name": "ESMFold monomer",
+  "sequences": [
+    { "proteinChain": { "sequence": "MGLSDGEWQLVLNVWGKVEADIPGHGQEVLIRLFKGHPETLERFDKFKHLK...", "chain_id": "A" } }
+  ],
+  "params": {
+    "modelName": "esm1b"
+  }
+}
+```
+
 ## Params by model
 
 ### Boltz / Boltz-2

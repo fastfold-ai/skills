@@ -912,7 +912,8 @@ components:
         Folding model to use:
         - `monomer`: AlphaFold2 for single chain proteins
         - `multimer`: AlphaFold2 for protein complexes
-        - `esm1b`: ESM-1b language model
+        - `esm1b`: ESMFold (Meta's structure prediction via ESM embeddings, OpenFold weights).
+          Use this string whenever the user says "ESM", "ESMFold", or "ESM-1b".
         - `boltz`: Boltz model for protein folding
         - `boltz-2`: Enhanced Boltz-2 (ligands, affinity, pockets/bonds; advanced params below)
         - `openfold3`: OpenFold 3 for biomolecular complexes (protein, DNA, RNA, ligand); use
