@@ -19,9 +19,10 @@ relaxPrediction, recyclingSteps, samplingSteps, diffusionSample, numModelSeeds, 
 constraints (contact, pocket, bond, webhooks),
 isPublic, and optional "from" (library ID). See references/jobs.yaml for schema and examples.
 
-Webhook notes: `constraints.webhooks` currently supports nested Evolla auto-chat:
-`webhooks.evolla.enabled` (bool) plus optional `webhooks.evolla.initial_question` (string).
-Additional webhook targets may be added under `constraints.webhooks` in future versions.
+Webhook notes: `constraints.webhooks` supports nested webhook configs:
+- Evolla: `webhooks.evolla.enabled` (bool) + optional `webhooks.evolla.initial_question` (string)
+- OpenMM: `webhooks.openmm.enabled` (bool) + optional OpenMM overrides
+  (`preset`, `residue_profile`, `temp`, `ionic`, `pH`, `step_size_ns`, `sim_length_ns`, etc.)
 
 Requires: Python standard library only (no external dependencies)
 Environment: FASTFOLD_API_KEY

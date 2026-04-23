@@ -43,6 +43,7 @@ cd skills/fold   # or use paths like skills/fold/scripts/create_job.py
 - **Create job (full payload):** `python scripts/create_job.py --payload job.json`
 - **Wait for completion:** `python scripts/wait_for_completion.py <job_id> [--poll-interval 5] [--timeout 900]`
 - **Wait for fold + linked Evolla answers (preferred for webhook flows):** `python scripts/wait_for_evolla_linked.py <job_id> --json [--evolla-timeout 300] [--max-not-found-polls 8]` (defaults to one representative source sequence; add `--all-sequences` only when you explicitly need per-sequence polling)
+- **Wait for fold + linked OpenMM workflow results (preferred for OpenMM webhook flows):** `python scripts/wait_for_openmm_linked.py <job_id> --json [--webhook-timeout 600] [--workflow-timeout 2400]`
 - **Fetch results (JSON):** `python scripts/fetch_results.py <job_id>`
 - **Download CIF:** `python scripts/download_cif.py <job_id> [--out output.cif]`
 - **Viewer link:** `python scripts/get_viewer_link.py <job_id>`
@@ -52,9 +53,9 @@ The agent should run these scripts for the user, not hand them a list of command
 ### Agent execution guardrails (required)
 
 - Run scripts directly from this skill (`python scripts/<script>.py ...`), never via path-discovery commands such as `find`.
-- Do not generate temporary monitor scripts in `/tmp`; use `wait_for_evolla_linked.py`.
-- Use bounded waits (`--timeout` and `--evolla-timeout`) instead of open-ended loops.
-- Treat `workflowStatus == NOT_FOUND` as a signal that Evolla linkage is missing/delayed, not as a reason to keep polling indefinitely.
+- Do not generate temporary monitor scripts in `/tmp`; use `wait_for_evolla_linked.py` or `wait_for_openmm_linked.py`.
+- Use bounded waits (`--timeout`, `--evolla-timeout`, `--webhook-timeout`, `--workflow-timeout`) instead of open-ended loops.
+- Treat `workflowStatus == NOT_FOUND` as a signal that webhook linkage is missing/delayed, not as a reason to keep polling indefinitely.
 
 ## Workflow: Create → Wait → Results
 
@@ -73,6 +74,18 @@ Use this when users want automatic post-fold interpretation in natural language.
    - `python scripts/wait_for_evolla_linked.py <job_id> --json --evolla-timeout 300 --max-not-found-polls 8`
 3. Read fold + Evolla answer(s) from that single command output.
 
+### Optional chain: Fold completion -> OpenMM completion -> metrics + links
+
+Use this when users want automatic MD simulation after fold completion.
+
+1. Submit fold job with OpenMM webhook constraints.
+2. Run:
+   - `python scripts/wait_for_openmm_linked.py <job_id> --json --webhook-timeout 600 --workflow-timeout 2400`
+3. Read linked OpenMM workflow details from one output:
+   - `openmm.workflowId`
+   - `openmm.summary` (`artifactCount`, `hasMetrics`, `metricsKeys`)
+   - `openmm.links.dashboard_url` and `openmm.links.py2dmol_url`
+
 **What is Evolla?**
 - Evolla is FastFold's protein-chat workflow. It uses the folded structure as context and answers questions (for example: function summary, mechanism hints, or other protein Q&A).
 
@@ -83,10 +96,12 @@ Use this when users want automatic post-fold interpretation in natural language.
 - Versions: the paper describes 10B and 80B variants; this webhook flow currently targets Evolla-10B.
 
 **What the webhook is for**
-- It automatically starts Evolla right after fold completion.
-- It does not change the fold artifacts (`cif_url`, `pdb_url`, metrics); it adds linked chat workflows and answers.
-- There is **one webhook option today**: nested Evolla webhook (`webhooks.evolla.enabled`).
-- `constraints.webhooks` is intentionally extensible and may include more webhook options in future versions.
+- It can automatically start Evolla and/or OpenMM right after fold completion.
+- It does not change the fold artifacts (`cif_url`, `pdb_url`, metrics); it adds linked downstream workflows.
+- Available nested webhook options:
+  - Evolla chat: `webhooks.evolla.enabled` (+ optional `webhooks.evolla.initial_question`)
+  - OpenMM MD: `webhooks.openmm.enabled` (+ optional OpenMM overrides)
+- `constraints.webhooks` is intentionally extensible and may include more workflow options in future versions.
 
 Create jobs with:
 
@@ -95,6 +110,14 @@ Create jobs with:
 and optionally:
 
 `constraints.webhooks.evolla.initial_question = "What is the function of this protein?"`
+
+For OpenMM linkage:
+
+`constraints.webhooks.openmm.enabled = true`
+
+and optionally include OpenMM overrides (same shape as `workflow_input`):
+
+`preset`, `residue_profile`, `temp`, `ionic`, `pH`, `step_size_ns`, `sim_length_ns`, `box_mode`, `box_length`, `topol`, `ext_force`, `ext_force_expr`, etc.
 
 **How to read webhook results (end-to-end):**
 
@@ -124,6 +147,12 @@ If a linked workflow is `DRAFT`, users can edit the draft initial question via:
   body: `{ "question": "..." }`
 
 Then wait for a follow-up run/answer as above.
+
+For OpenMM-linked runs, use:
+
+- `python scripts/wait_for_openmm_linked.py <job_id> --json`
+
+This waiter resolves fold completion, OpenMM webhook delivery linkage, linked workflow terminal status, and result links in one command.
 
 ## ⚠️ Correct Payload Field Names — Read Before Writing Any Payload
 
@@ -442,7 +471,9 @@ Optional fields — omit to use defaults. **Affinity-related** keys apply only w
 - **CCD vs SMILES:** ligand `sequence` is either a **CCD code** with `"is_ccd": true` or a **SMILES** string with `is_ccd` omitted/false.
 - **Affinity (Boltz-2):** set `"property_type": "affinity"` on the **`ligandSequence`** object; never put `computeAffinity` in `params`.
 - **Constraints (`contact` / `pocket` / `bond`):** Set them in the job JSON under `constraints` (same request body as everything else). **Boltz**, **Boltz-2**, and **IntelliFold** use pocket/bond constraints in YAML. **Chai-1** maps contact/pocket/bond into native restraints during inference. **OpenFold 3** does not feed `constraints` into its inference input—only **sequences** and chain-level **modifications**—though the service may still persist `constraints` on the job for the UI or replay.
-- **Webhook automation (current):** `constraints.webhooks.evolla.enabled: true` enables Evolla auto-chat after fold completion; optional `constraints.webhooks.evolla.initial_question` sets the first question. This is the single webhook option today; future webhook options may be added under `constraints.webhooks`.
+- **Webhook automation (current):**
+  - `constraints.webhooks.evolla.enabled: true` enables Evolla auto-chat; optional `constraints.webhooks.evolla.initial_question`.
+  - `constraints.webhooks.openmm.enabled: true` enables OpenMM auto-simulation; optional OpenMM config overrides under `constraints.webhooks.openmm`.
 
 ## Complex vs Non-Complex Jobs
 
