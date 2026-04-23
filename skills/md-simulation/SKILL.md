@@ -65,7 +65,8 @@ The agent runs these scripts for the user. Do not hand users a list of commands;
 
 ### Agent execution guardrails
 
-- Run scripts from this skill directory (`python scripts/<name>.py ...`), never via path-discovery (`find`, `locate`).
+- Run scripts from this skill directory: `python scripts/<name>.py ...`. Do **not** search for them with `find` / `locate` / `ls` in arbitrary folders — they live alongside this SKILL.md.
+- Do **not** reimplement the workflow by hand (e.g. `requests` / `urllib` POST to `/v1/workflows`). Use the bundled scripts so the preset, file refs, share URLs, and settle polling behave consistently.
 - Do not generate temporary monitor scripts in `/tmp`; use `wait_for_workflow.py`.
 - Use bounded waits (`--timeout` and `--metrics-timeout`), never open-ended loops.
 - Metrics and plot artifacts can appear slightly **after** first terminal status; `wait_for_workflow.py` handles the extra settle window for you.
