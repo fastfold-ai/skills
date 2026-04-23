@@ -69,6 +69,7 @@ The agent runs these scripts for the user. Do not hand users a list of commands;
 
 - Run scripts from this skill directory: `python scripts/<name>.py ...`. Do **not** search for them with `find` / `locate` / `ls` in arbitrary folders — they live alongside this SKILL.md.
 - Do **not** reimplement the workflow by hand (e.g. `requests` / `urllib` POST to `/v1/workflows`). Use the bundled scripts so the preset, file refs, share URLs, and settle polling behave consistently.
+- **Default to private** — do not pass `--public` to `submit_from_fold_job.py` / `submit_manual_af_pae.py`. Only add `--public` when the user **explicitly** asks for a public link, sharable link, or the workflow to be shared. Correspondingly, only surface the `?shared=true` URL when the workflow is actually public.
 - Do not generate temporary monitor scripts in `/tmp`; use `wait_for_workflow.py`.
 - Use bounded waits (`--timeout` and `--metrics-timeout`), never open-ended loops.
 - Metrics and plot artifacts can appear slightly **after** first terminal status; `wait_for_workflow.py` handles the extra settle window for you.
