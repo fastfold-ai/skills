@@ -186,9 +186,11 @@ Use `scripts/fetch_results.py <workflow_id>` to print a concise summary and the 
 
 ## After completion — always share these links
 
-As soon as the workflow is terminal with results populated, the agent must proactively surface two links to the user:
+As soon as the workflow is terminal with results populated, the agent must proactively surface two links to the user.
 
-1. **Fastfold Cloud dashboard (always)** — where the user can browse the run, view plots inline, and download artifacts:
+**URL formatting rule (required):** print every URL as a bare, unwrapped URL on its own line, exactly as emitted by the scripts. Do **not** wrap URLs as markdown link-titles (`[title](url)`), HTML anchors, footnotes, or numbered reference lists — terminal UIs render those with the URL hidden, so the user can't click or copy it. Also do not shorten or truncate URLs.
+
+1. **Fastfold Cloud dashboard (always)** — where the user can browse the run, view plots inline, and download artifacts. Print verbatim:
 
    ```
    https://cloud.fastfold.ai/openmm/results/<workflow_id>
@@ -200,17 +202,17 @@ As soon as the workflow is terminal with results populated, the agent must proac
    https://cloud.fastfold.ai/openmm/results/<workflow_id>?shared=true
    ```
 
-2. **Py2DMol trajectory viewer (always)** — say exactly:
+2. **Py2DMol trajectory viewer (always)** — precede the URL with this sentence, then print the URL on its own line:
 
    > Trajectory is available for this run to visualize simulation, generate animations, and use playback controls in Py2DMol.
-
-   Then give the deep link:
 
    ```
    https://cloud.fastfold.ai/py2dmol/new?from=openmm_workflow&workflow_id=<workflow_id>
    ```
 
-`wait_for_workflow.py` and `fetch_results.py` already print these URLs; forward them to the user verbatim.
+3. **Individual plot URLs** — each `artifacts[].url` that ends in `.png` / `.svg` / `.json` should likewise be printed as a bare URL on its own line, prefixed with its filename (e.g. `rmsd.png: https://…`). No markdown link-titles, no numbered lists of short labels.
+
+`wait_for_workflow.py` and `fetch_results.py` already print these URLs as raw strings; forward them to the user verbatim — do not reformat.
 
 ## Workflow Status Values
 
