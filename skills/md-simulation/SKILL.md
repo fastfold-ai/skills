@@ -1,13 +1,13 @@
 ---
 name: md-simulation
-description: Run molecular dynamics (MD) simulations via the FastFold Workflows API. Today supports the CALVADOS+OpenMM workflow (calvados_openmm_v1) from either an existing fold job (AF structure + PAE auto-resolved) or manual PDB+PAE upload, then waits for completion and fetches metrics (RMSD/RMSF/Rg/FEL/binding/P-L distance) and plot artifacts. Use when running an MD simulation with FastFold, CALVADOS + OpenMM, reading MD metrics/plots, or scripting submit → wait → results for an MD run.
+description: Run molecular dynamics (MD) simulations via the FastFold Workflows API. Today supports the CALVADOS+OpenMM workflow (calvados_openmm_v1) from either an existing fold job (AF structure + PAE auto-resolved) or manual PDB+PAE upload, then waits for completion, fetches metrics/plots/CSV artifacts, and extracts trajectory frames as PDB files. Use when running an MD simulation with FastFold, CALVADOS + OpenMM, reading MD metrics/plots, extracting frames, or scripting submit → wait → results for an MD run.
 ---
 
 # MD Simulation
 
 ## Overview
 
-This skill drives the FastFold Workflows API to run molecular dynamics simulations and retrieve their metrics and plots.
+This skill drives the FastFold Workflows API to run molecular dynamics simulations, retrieve metrics/plots/CSV plot data, and extract trajectory frames as PDB files.
 
 Current engine:
 - **CALVADOS + OpenMM** (workflow type: `calvados_openmm_v1`), preset `single_af_go` (AF structure + PAE).
@@ -18,6 +18,7 @@ Flows covered:
 3. **From an existing OpenMM workflow** — fetch its stored input payload, keep the same input files, set params explicitly, then submit a new workflow.
 
 Both paths end in the same result shape: artifacts list, `metrics`, and `metricsJson` inside the latest task's `result_raw_json`.
+Completed OpenMM workflows can also extract a specific trajectory conformation with `POST /v1/workflows/openmm/<workflow_id>/extract-frame`.
 
 ## Authentication
 
@@ -40,6 +41,7 @@ Do **not** ask users to paste secrets in chat.
 - User wants to run an MD simulation (CALVADOS/OpenMM) via the FastFold API.
 - User mentions `calvados_openmm_v1`, OpenMM workflow, AF + PAE → MD, manual PDB/PAE upload for MD.
 - User needs: submit MD workflow → wait for completion → fetch metrics / plots / artifact URLs.
+- User asks to extract a frame/conformation/snapshot/PDB from an OpenMM trajectory at a time in ns.
 
 ## Running Scripts
 
@@ -63,6 +65,8 @@ Available scripts:
   `python scripts/wait_for_workflow.py <workflow_id> [--timeout 1800] [--metrics-timeout 900] [--poll-interval 5] [--json]`
 - **Fetch final results (artifacts + metrics summary):**
   `python scripts/fetch_results.py <workflow_id> [--json]`
+- **Extract a trajectory frame as PDB:**
+  `python scripts/extract_frame.py <workflow_id> --time-ns 5.0 [--selection "protein or resname LIG"] [--dt-in-ps 0] [--download ./frame.pdb] [--json]` — validates the requested time against `sim_length_ns` when available, calls the frame extraction endpoint, and prints the extracted PDB URL.
 - **Toggle public/private (share link):**
   `python scripts/toggle_public.py <workflow_id> --public` (or `--private`) — when set public, prints the shareable URL `https://cloud.fastfold.ai/openmm/results/<workflow_id>?shared=true`.
 
@@ -219,7 +223,7 @@ Use this only with preset `single_af_go`.
 
 On a successful run, `tasks[-1].result_raw_json` contains:
 
-- `artifacts`: list of `{ path, sizeBytes, url? }` entries (e.g., `analysis/metrics.json`, `analysis/<name>_fel.png`, `analysis/<name>_rg.svg`, the DCD/PDB trajectory and topology, etc.).
+- `artifacts`: list of `{ path, sizeBytes, url? }` entries (e.g., `analysis/metrics.json`, `analysis/<name>_fel.png`, `analysis/<name>_fel.csv`, `analysis/<name>_rg.svg`, `analysis/<name>_rg.csv`, the DCD/PDB trajectory and topology, etc.).
 - `metrics`: structured summary. Top-level keys:
   - `rmsd`, `rmsf`, `radius_of_gyration`, `free_energy_landscape`
   - `binding_energy`, `protein_ligand_distance` (only meaningful when `ligand_detected: true`)
@@ -227,6 +231,22 @@ On a successful run, `tasks[-1].result_raw_json` contains:
 - `metricsJson`: raw `analysis/metrics.json` content (also downloadable as artifact).
 
 Use `scripts/fetch_results.py <workflow_id>` to print a concise summary and the artifact URLs.
+
+## Extracting a Frame as PDB
+
+Use this after an OpenMM workflow has completed and has trajectory artifacts (`top.pdb` + `.dcd`). If the user gives an `/openmm/results/<workflow_id>` page and asks for a snapshot/conformation/frame at a time in ns, run:
+
+```bash
+python scripts/extract_frame.py <workflow_id> --time-ns <time_ns>
+```
+
+Optional parameters:
+- `--selection "protein or resname LIG"` — MDAnalysis atom selection. Defaults to protein plus ligand if present.
+- `--dt-in-ps 0` — timestep override in ps; `0` means use the trajectory metadata.
+- `--download ./frame.pdb` — also download the returned PDB URL to a local path.
+- `--json` — print the full response.
+
+The script fetches the workflow first and validates `--time-ns` against `sim_length_ns` when available. The API still extracts the closest available trajectory frame and returns `frameIndex`, `actualTimeNs`, `atomCount`, and a signed `pdbUrl`.
 
 ## After completion — always share these links
 
@@ -254,7 +274,7 @@ As soon as the workflow is terminal with results populated, the agent must proac
    https://cloud.fastfold.ai/py2dmol/new?from=openmm_workflow&workflow_id=<workflow_id>
    ```
 
-3. **Individual plot URLs** — each `artifacts[].url` that ends in `.png` / `.svg` / `.json` should likewise be printed as a bare URL on its own line, prefixed with its filename (e.g. `rmsd.png: https://…`). No markdown link-titles, no numbered lists of short labels.
+3. **Individual plot/data URLs** — each `artifacts[].url` that ends in `.png` / `.svg` / `.csv` / `.json` should likewise be printed as a bare URL on its own line, prefixed with its filename (e.g. `rmsd.png: https://…`). No markdown link-titles, no numbered lists of short labels.
 
 `wait_for_workflow.py` and `fetch_results.py` already print these URLs as raw strings; forward them to the user verbatim — do not reformat.
 

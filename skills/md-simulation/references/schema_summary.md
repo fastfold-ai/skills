@@ -77,7 +77,7 @@ From `/v1/workflows/public/<id>` (requires `isPublic: true`) or
 `/v1/workflows/task-results/<id>` (authed):
 
 - `tasks[-1].result_raw_json.artifacts[]`
-  - `path`: e.g. `analysis/metrics.json`, `analysis/<name>_fel.png`, `analysis/<name>_rg.svg`, `<name>.dcd`, `<name>.pdb`, `_inputs/<name>.pdb`, `_inputs/<name>.json`
+  - `path`: e.g. `analysis/metrics.json`, `analysis/<name>_fel.png`, `analysis/<name>_fel.csv`, `analysis/<name>_rg.svg`, `analysis/<name>_rg.csv`, `<name>.dcd`, `<name>.pdb`, `_inputs/<name>.pdb`, `_inputs/<name>.json`
   - `sizeBytes`: integer bytes
   - `url`: signed download URL (CloudFront / S3)
 - `tasks[-1].result_raw_json.metrics` (top-level keys):
@@ -93,3 +93,52 @@ From `/v1/workflows/public/<id>` (requires `isPublic: true`) or
 Only trust artifacts/metrics when task status is `COMPLETED`.
 Metrics may appear a short time after the first terminal status; use
 `wait_for_workflow.py` to handle the settle window.
+
+## Extract frame endpoint
+
+Use after a completed OpenMM workflow has trajectory artifacts.
+
+```
+POST /v1/workflows/openmm/<workflow_id>/extract-frame
+```
+
+Body:
+
+```json
+{
+  "timeNs": 5.0,
+  "selection": "protein or resname LIG",
+  "outputFilename": "<workflow-name>_extracted_frame.pdb",
+  "dtInPs": 0
+}
+```
+
+Fields:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `timeNs` | number | ✅ | Time to extract in ns. Must be non-negative and should be within `sim_length_ns`; the server extracts the closest available frame. |
+| `selection` | string | optional | MDAnalysis atom selection. Defaults to `protein or resname LIG`. |
+| `outputFilename` | string | optional | PDB filename. UI/scripts use `<workflow-name>_extracted_frame.pdb`. |
+| `dtInPs` | number | optional | Timestep override in ps. `0` means auto/read from trajectory metadata. |
+
+Response:
+
+```json
+{
+  "workflowId": "<uuid>",
+  "taskId": "<uuid>",
+  "pdbUrl": "https://...",
+  "path": "analysis/extracted_frames/<file>.pdb",
+  "frameIndex": 500,
+  "requestedTimeNs": 5.0,
+  "actualTimeNs": 5.0,
+  "atomCount": 1234
+}
+```
+
+Bundled script:
+
+```bash
+python scripts/extract_frame.py <workflow_id> --time-ns 5.0 [--selection "protein or resname LIG"] [--dt-in-ps 0] [--download ./frame.pdb] [--json]
+```
