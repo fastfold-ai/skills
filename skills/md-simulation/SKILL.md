@@ -15,6 +15,7 @@ Current engine:
 Flows covered:
 1. **From an existing fold job** (`sourceType: fold_job`) — auto-resolve structure + PAE.
 2. **Manual upload** — upload PDB and PAE JSON through the Library API, then pass refs in `workflow_input.files`.
+3. **From an existing OpenMM workflow** — fetch its stored input payload, keep the same input files, set params explicitly, then submit a new workflow.
 
 Both paths end in the same result shape: artifacts list, `metrics`, and `metricsJson` inside the latest task's `result_raw_json`.
 
@@ -56,6 +57,8 @@ Available scripts:
   `python scripts/fetch_uniprot.py <UNIPROT_ID> --out-dir <dir> [--json]` — writes `AF-<ID>.pdb` and `AF-<ID>.json` into `--out-dir` and prints their paths. Pipe these into `submit_manual_af_pae.py`.
 - **Submit MD from manual PDB+PAE upload:**
   `python scripts/submit_manual_af_pae.py --pdb path/to/structure.pdb --pae path/to/pae.json [--name "OpenMM manual"] [--simulation-name my_run] [--sim-length-ns 0.2] [--step-size-ns 0.01] [--temperature 293.15] [--ionic 0.15] [--ph 7.5] [--box-length 20] [--profile calvados3] [--public]`
+- **Submit from an existing OpenMM workflow (preferred when given `/openmm/results/<workflow_id>`):**
+  `python scripts/submit_from_workflow.py <workflow_id> [--name "OpenMM copy"] [--simulation-name my_run] [--sim-length-ns 10] [--step-size-ns 0.01] [--temperature 293.15] [--ionic 0.15] [--ph 7.5] [--box-length 50] [--profile calvados3] [--topology center] [--json]` — fetches the source workflow's `input_payload`, reuses the same input file refs, applies explicit parameter overrides, then submits a new workflow.
 - **Wait for workflow completion (status + metrics/plots propagation):**
   `python scripts/wait_for_workflow.py <workflow_id> [--timeout 1800] [--metrics-timeout 900] [--poll-interval 5] [--json]`
 - **Fetch final results (artifacts + metrics summary):**
@@ -78,7 +81,7 @@ The agent runs these scripts for the user. Do not hand users a list of commands;
 
 1. **Submit** the MD workflow:
    - `POST /v1/workflows` with `workflow_name: calvados_openmm_v1` and an OpenMM `workflow_input`.
-   - Two supported input modes (see below).
+   - Three supported input modes (see below).
 2. **Poll status** until terminal:
    - `GET /v1/workflows/status/<workflow_id>` → status in `INITIALIZED`, `QUEUED`, `RUNNING`, `COMPLETED`, `FAILED`, `STOPPED`.
 3. **Fetch results**:
@@ -124,6 +127,46 @@ Use when the user already has an existing FastFold fold job (AlphaFold2/OpenFold
 ```
 
 The backend auto-attaches `files.pdb` and `files.pae` from the source fold job.
+
+## Input Mode 0 — Submit from an existing OpenMM workflow
+
+Use this when the user gives an `/openmm/results/<workflow_id>` page as the
+reference and asks to run with the same inputs/settings. This is not a backend
+rerun. The script fetches the source workflow, copies its `input_payload`
+explicitly, applies any parameter values the user stated, then submits a new
+`POST /v1/workflows` request.
+
+Run:
+
+```bash
+python scripts/submit_from_workflow.py <workflow_id> \
+  --sim-length-ns 10 \
+  --step-size-ns 0.01 \
+  --temperature 293.15 \
+  --ionic 0.15 \
+  --ph 7.5 \
+  --box-length 50 \
+  --profile calvados3 \
+  --topology center
+```
+
+Then wait and fetch results:
+
+```bash
+python scripts/wait_for_workflow.py <new_workflow_id> --timeout 3700 --metrics-timeout 900 --poll-interval 5
+python scripts/fetch_results.py <new_workflow_id>
+```
+
+The source workflow's stored input file refs are part of `input_payload.files`.
+Do not download those files from `cloud.fastfold.ai`, and do not upload new
+copies unless the user explicitly asks to replace inputs.
+
+If fetching the reference workflow fails, tell the user they may not have access
+to that workflow or it may no longer exist. Ask them to get the owner to share
+the workflow/files, or switch to another input mode:
+- use `python scripts/submit_manual_af_pae.py` if they can provide local PDB + PAE files;
+- use `python scripts/fetch_uniprot.py` followed by `python scripts/submit_manual_af_pae.py` if they know a UniProt accession;
+- use `python scripts/submit_from_fold_job.py` if the source is an accessible FastFold fold job.
 
 ## Input Mode 2 — Manual PDB + PAE upload
 

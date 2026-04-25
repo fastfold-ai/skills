@@ -27,6 +27,7 @@ Never paste keys into chat or command arguments.
 | POST | `/v1/library/{item_id}/upload-files` | Upload PDB or PAE JSON (multipart/form-data, field `files`) |
 | GET | `/v1/library/{item_id}` | Read back `metadata.files[0].file_name` to reference in the workflow payload |
 | POST | `/v1/workflows` | Submit `workflow_name: calvados_openmm_v1` with OpenMM `workflow_input` (include `isPublic: true` to make public at creation) |
+| GET | `/v1/workflows/{workflow_id}` | Fetch an existing OpenMM workflow and read its stored `input_payload` before submitting a new workflow from it |
 | GET | `/v1/workflows/status/{workflow_id}` | Poll workflow + task status |
 | GET | `/v1/workflows/task-results/{workflow_id}` | Read task-level output summary (authed) |
 | GET | `/v1/workflows/public/{workflow_id}` | Read full public payload including `result_raw_json` (no auth; requires `isPublic: true`) |
