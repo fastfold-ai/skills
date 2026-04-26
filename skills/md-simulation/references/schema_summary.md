@@ -18,7 +18,7 @@ POST /v1/workflows
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `preset` | string | ✅ | `"single_af_go"` for AF structure + PAE. Other presets exist server-side (`single_idr_fasta`, `single_idr_box_eq`) but require FASTA / sequences input — not covered by this skill yet. |
+| `preset` | string | ✅ | `"single_af_go"` (AF structure + PAE) or `"single_idr_fasta"` (sequence-only/FASTA mode). |
 | `name` | string | ✅ | OpenMM simulation name. Used as filename stem for generated artifacts. |
 | `force_field_family` | string | ✅ | Typically `"calvados"`. |
 | `residue_profile` | string | ✅ | Residue profile (e.g. `"calvados2"`, `"calvados3"`, `"c2rna"`). The server auto-attaches a residues CSV for known profiles. |
@@ -29,6 +29,14 @@ POST /v1/workflows
 | `sim_length_ns` | number | ✅ | Simulation length in ns (e.g. `0.2`). |
 | `box_length` | number | ✅ | Cubic box length in nm (e.g. `20`). |
 | `files` | object | ✅ | `{}` for fold-job mode; `{ "pdb": {...}, "pae": {...} }` for manual upload mode. |
+| `config.box_eq` | bool | optional | Enable/disable anisotropic box equilibration stage. |
+| `config.pressure` | number[3] | optional | Pressure vector `[x,y,z]` for box equilibration, e.g. `[0.1,0,0]`. |
+| `component_defaults.periodic` | bool | optional | Enable/disable periodic component handling. |
+| `component_defaults.charged_N_terminal_amine` | bool | optional | N-terminal amine charge-state flag. |
+| `component_defaults.charged_C_terminal_carboxyl` | bool | optional | C-terminal carboxyl charge-state flag. |
+| `component_defaults.charged_histidine` | bool | optional | Histidine charging flag. |
+| `component_defaults.charge_termini` | string | optional | CALVADOS termini mode derived from N/C flags (`both`, `N`, `C`, `none`). |
+| `yml_reference` | object | optional | Advanced lane-2 metadata: uploaded `config.yaml` + `components.yaml` refs and file bindings for provenance/future YML-native input mode. |
 | `isPublic` | bool | optional | Set to `true` to allow public reads via `/v1/workflows/public/<id>`. |
 
 ### Fold-job mode (`preset: single_af_go` + `files: {}`)
@@ -61,6 +69,24 @@ After uploading each file via the Library API, provide refs:
 `fileName` must be the UUID-prefixed filename that the server assigns
 (read from `metadata.files[0].file_name` after upload). Do **not** pass
 the local filename.
+
+### Advanced lane-2 reference metadata (`yml_reference`)
+
+Advanced skills can attach uploaded YML references without changing runtime semantics:
+
+```json
+"yml_reference": {
+  "mode": "lane2_custom_upload_v1",
+  "config": { "libraryItemId": "<uuid>", "fileName": "config.yaml" },
+  "components": { "libraryItemId": "<uuid>", "fileName": "components.yaml" },
+  "file_bindings": {
+    "residues": { "libraryItemId": "<uuid>", "fileName": "<server-file>" },
+    "fasta": { "libraryItemId": "<uuid>", "fileName": "<server-file>" }
+  }
+}
+```
+
+This is for reproducibility/provenance and future migration; current execution still uses explicit OpenMM fields + `files`.
 
 ## Submit response
 

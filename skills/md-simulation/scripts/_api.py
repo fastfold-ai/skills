@@ -94,6 +94,8 @@ def http_upload_file(
         content_type = "text/x-fasta"
     elif lower.endswith(".csv"):
         content_type = "text/csv"
+    elif lower.endswith(".yml") or lower.endswith(".yaml"):
+        content_type = "text/yaml"
     else:
         content_type = "application/octet-stream"
 

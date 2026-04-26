@@ -25,6 +25,16 @@ from load_env import resolve_fastfold_api_key
 from security_utils import validate_base_url, validate_job_id
 
 
+def _charge_termini_from_flags(charged_n: bool, charged_c: bool) -> str:
+    if charged_n and charged_c:
+        return "both"
+    if charged_n:
+        return "N"
+    if charged_c:
+        return "C"
+    return "none"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Submit an MD simulation (calvados_openmm_v1) from an existing FastFold fold job.",
@@ -42,6 +52,24 @@ def main() -> None:
     parser.add_argument("--step-size-ns", type=float, default=0.01, help="Step size in ns.")
     parser.add_argument("--sim-length-ns", type=float, default=0.2, help="Simulation length in ns.")
     parser.add_argument("--box-length", type=float, default=20, help="Box length in nm.")
+    parser.add_argument(
+        "--charged-n-terminal-amine",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Enable/disable workflow_input.component_defaults.charged_N_terminal_amine.",
+    )
+    parser.add_argument(
+        "--charged-c-terminal-carboxyl",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Enable/disable workflow_input.component_defaults.charged_C_terminal_carboxyl.",
+    )
+    parser.add_argument(
+        "--charged-histidine",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Enable/disable workflow_input.component_defaults.charged_histidine.",
+    )
     parser.add_argument("--public", action="store_true", help="Make the workflow readable via /v1/workflows/public/<id>.")
     parser.add_argument("--json", action="store_true", help="Print full submit response JSON instead of workflow_id.")
     args = parser.parse_args()
@@ -81,6 +109,30 @@ def main() -> None:
         "sourceJobRunId": job_run_id,
         "sourceSequenceId": sequence_id,
     }
+    component_defaults_payload: dict = {}
+    if args.charged_n_terminal_amine is not None:
+        component_defaults_payload["charged_N_terminal_amine"] = bool(args.charged_n_terminal_amine)
+    if args.charged_c_terminal_carboxyl is not None:
+        component_defaults_payload["charged_C_terminal_carboxyl"] = bool(args.charged_c_terminal_carboxyl)
+    if args.charged_histidine is not None:
+        component_defaults_payload["charged_histidine"] = bool(args.charged_histidine)
+    if (
+        args.charged_n_terminal_amine is not None
+        or args.charged_c_terminal_carboxyl is not None
+    ):
+        charged_n = (
+            bool(args.charged_n_terminal_amine)
+            if args.charged_n_terminal_amine is not None
+            else True
+        )
+        charged_c = (
+            bool(args.charged_c_terminal_carboxyl)
+            if args.charged_c_terminal_carboxyl is not None
+            else True
+        )
+        component_defaults_payload["charge_termini"] = _charge_termini_from_flags(charged_n, charged_c)
+    if component_defaults_payload:
+        workflow_input["component_defaults"] = component_defaults_payload
     if args.public:
         workflow_input["isPublic"] = True
 

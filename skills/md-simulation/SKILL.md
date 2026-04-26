@@ -54,13 +54,17 @@ cd skills/md-simulation
 Available scripts:
 
 - **Submit MD from a fold job (AF+PAE auto-attach):**
-  `python scripts/submit_from_fold_job.py <fold_job_id> [--name "OpenMM via fold"] [--simulation-name my_run] [--preset single_af_go] [--sim-length-ns 0.2] [--step-size-ns 0.01] [--temperature 293.15] [--ionic 0.15] [--ph 7.5] [--box-length 20] [--profile calvados3] [--public]`
+  `python scripts/submit_from_fold_job.py <fold_job_id> [--name "OpenMM via fold"] [--simulation-name my_run] [--preset single_af_go] [--sim-length-ns 0.2] [--step-size-ns 0.01] [--temperature 293.15] [--ionic 0.15] [--ph 7.5] [--box-length 20] [--profile calvados3] [--charged-n-terminal-amine|--no-charged-n-terminal-amine] [--charged-c-terminal-carboxyl|--no-charged-c-terminal-carboxyl] [--charged-histidine|--no-charged-histidine] [--public]`
 - **Fetch PDB + PAE from AlphaFold DB by UniProt ID:**
   `python scripts/fetch_uniprot.py <UNIPROT_ID> --out-dir <dir> [--json]` — writes `AF-<ID>.pdb` and `AF-<ID>.json` into `--out-dir` and prints their paths. Pipe these into `submit_manual_af_pae.py`.
 - **Submit MD from manual PDB+PAE upload:**
-  `python scripts/submit_manual_af_pae.py --pdb path/to/structure.pdb --pae path/to/pae.json [--name "OpenMM manual"] [--simulation-name my_run] [--sim-length-ns 0.2] [--step-size-ns 0.01] [--temperature 293.15] [--ionic 0.15] [--ph 7.5] [--box-length 20] [--profile calvados3] [--public]`
+  `python scripts/submit_manual_af_pae.py --pdb path/to/structure.pdb --pae path/to/pae.json [--name "OpenMM manual"] [--simulation-name my_run] [--sim-length-ns 0.2] [--step-size-ns 0.01] [--temperature 293.15] [--ionic 0.15] [--ph 7.5] [--box-length 20] [--profile calvados3] [--charged-n-terminal-amine|--no-charged-n-terminal-amine] [--charged-c-terminal-carboxyl|--no-charged-c-terminal-carboxyl] [--charged-histidine|--no-charged-histidine] [--public]`
 - **Submit from an existing OpenMM workflow (preferred when given `/openmm/results/<workflow_id>`):**
-  `python scripts/submit_from_workflow.py <workflow_id> [--name "OpenMM copy"] [--simulation-name my_run] [--sim-length-ns 10] [--step-size-ns 0.01] [--temperature 293.15] [--ionic 0.15] [--ph 7.5] [--box-length 50] [--profile calvados3] [--topology center] [--json]` — fetches the source workflow's `input_payload`, reuses the same input file refs, applies explicit parameter overrides, then submits a new workflow.
+  `python scripts/submit_from_workflow.py <workflow_id> [--name "OpenMM copy"] [--simulation-name my_run] [--component-name FUSRGG3] [--sim-length-ns 10] [--step-size-ns 0.01] [--temperature 293.15] [--ionic 0.15] [--ph 7.5] [--box-length 50] [--profile calvados3] [--topology center] [--box-eq|--no-box-eq] [--pressure 0.1,0,0] [--periodic|--no-periodic] [--charged-n-terminal-amine|--no-charged-n-terminal-amine] [--charged-c-terminal-carboxyl|--no-charged-c-terminal-carboxyl] [--charged-histidine|--no-charged-histidine] [--json]` — fetches the source workflow's `input_payload`, reuses the same input file refs, applies explicit parameter overrides, then submits a new workflow.
+- **Advanced (on explicit request only): submit from custom YML refs + uploaded files:**
+  `python scripts/submit_from_yml_refs.py --config-yaml ./config.yaml --components-yaml ./components.yaml --residues-csv ./residues.csv --fasta ./input.fasta [--simulation-name my_run] [--component-name FUSRGG3] [--topology center] [--box-length 50] [--json]`  
+  or AF/structure mode:  
+  `python scripts/submit_from_yml_refs.py --config-yaml ./config.yaml --components-yaml ./components.yaml --residues-csv ./residues.csv --pdb ./structure.pdb --pae ./pae.json [...]`
 - **Wait for workflow completion (status + metrics/plots propagation):**
   `python scripts/wait_for_workflow.py <workflow_id> [--timeout 1800] [--metrics-timeout 900] [--poll-interval 5] [--json]`
 - **Fetch final results (artifacts + metrics summary):**
@@ -76,6 +80,7 @@ The agent runs these scripts for the user. Do not hand users a list of commands;
 
 - Run scripts from this skill directory: `python scripts/<name>.py ...`. Do **not** search for them with `find` / `locate` / `ls` in arbitrary folders — they live alongside this SKILL.md.
 - Do **not** reimplement the workflow by hand (e.g. `requests` / `urllib` POST to `/v1/workflows`). Use the bundled scripts so the preset, file refs, share URLs, and settle polling behave consistently.
+- Treat `submit_from_yml_refs.py` as an advanced lane-2 tool. Use it only when the user explicitly asks for custom YML-reference uploads and file-binding control.
 - **Default to private** — do not pass `--public` to `submit_from_fold_job.py` / `submit_manual_af_pae.py`. Only add `--public` when the user **explicitly** asks for a public link, sharable link, or the workflow to be shared. Correspondingly, only surface the `?shared=true` URL when the workflow is actually public.
 - Do not generate temporary monitor scripts in `/tmp`; use `wait_for_workflow.py`.
 - Use bounded waits (`--timeout` and `--metrics-timeout`), never open-ended loops.
@@ -140,11 +145,25 @@ rerun. The script fetches the source workflow, copies its `input_payload`
 explicitly, applies any parameter values the user stated, then submits a new
 `POST /v1/workflows` request.
 
+Component selection rule (important):
+- Use `workflow_input.component_name` to choose which sequence/component CALVADOS runs.
+- For sequence preset (`single_idr_fasta`), `component_name` must match a sequence label or FASTA record ID.
+- Use `--component-name` in `submit_from_workflow.py` whenever the source has multiple sequence labels.
+- Box-equilibration controls are standard params: use `--box-eq/--no-box-eq`, `--pressure X,Y,Z`, and `--periodic/--no-periodic` to override `workflow_input.config.box_eq`, `workflow_input.config.pressure`, and `workflow_input.component_defaults.periodic`.
+- Charge-state controls are standard boolean flags: use `--charged-n-terminal-amine/--no-charged-n-terminal-amine`, `--charged-c-terminal-carboxyl/--no-charged-c-terminal-carboxyl`, and `--charged-histidine/--no-charged-histidine`.
+
 Run:
 
 ```bash
 python scripts/submit_from_workflow.py <workflow_id> \
   --sim-length-ns 10 \
+  --component-name FUSRGG3 \
+  --box-eq \
+  --pressure 0.1,0,0 \
+  --periodic \
+  --charged-n-terminal-amine \
+  --no-charged-c-terminal-carboxyl \
+  --no-charged-histidine \
   --step-size-ns 0.01 \
   --temperature 293.15 \
   --ionic 0.15 \
@@ -218,6 +237,21 @@ When the user gives a UniProt accession (e.g. `P00698`) instead of local files, 
 2. `python scripts/submit_manual_af_pae.py --pdb /tmp/uniprot/AF-<UNIPROT_ID>.pdb --pae /tmp/uniprot/AF-<UNIPROT_ID>.json ...`
 
 Use this only with preset `single_af_go`.
+
+## Input Mode 3 (Advanced, on request) — Custom YML refs + uploaded file bindings
+
+Use only when the user explicitly asks for this advanced lane-2 flow.
+
+`submit_from_yml_refs.py` does the following:
+
+1. Uploads `config.yaml`, `components.yaml`, and required input files (residues + FASTA or residues + PDB/PAE) to Library.
+2. Submits a runnable OpenMM workflow using explicit supported fields and `files` refs.
+3. Attaches the uploaded YML refs under `workflow_input.yml_reference` for provenance/future YML-native migration.
+
+Important behavior:
+- Runtime execution still follows explicit OpenMM fields and file refs.
+- YML is preserved as reference metadata (`yml_reference`) for reproducibility.
+- This is advanced and should not replace standard `submit_from_fold_job.py`, `submit_manual_af_pae.py`, or `submit_from_workflow.py` flows.
 
 ## Reading Results
 
