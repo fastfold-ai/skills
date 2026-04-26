@@ -17,9 +17,9 @@ Use this file when a user asks about the **method** behind the MD simulation (wh
 - **CALVADOS 2 (2022):** G. Tesei, K. Lindorff-Larsen. *Improved predictions of phase behaviour of intrinsically disordered proteins by tuning the interaction range.* Open Research Europe 2:94. https://doi.org/10.12688/openreseurope.14967.2
 - **CALVADOS 3 / multi-domain (2024):** F. Cao, S. von Bülow, G. Tesei, K. Lindorff-Larsen. *A coarse-grained model for disordered and multi-domain proteins.* Protein Science 33(11):e5172. https://doi.org/10.1002/pro.5172
 
-## Residue profiles in this skill
+## Force fields in this skill (`residue_profile`)
 
-The `workflow_input.residue_profile` field maps to a residue parameter set from the CALVADOS family:
+The `workflow_input.residue_profile` field selects a force-field parameter set from the CALVADOS family:
 
 - `calvados2` — CALVADOS 2 parameters (Tesei & Lindorff-Larsen, 2022).
 - `calvados3` — CALVADOS 3 parameters, improved for multi-domain proteins (Cao et al., 2024). Default in this skill.

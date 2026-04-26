@@ -21,7 +21,7 @@ POST /v1/workflows
 | `preset` | string | ✅ | `"single_af_go"` (AF structure + PAE) or `"single_idr_fasta"` (sequence-only/FASTA mode). |
 | `name` | string | ✅ | OpenMM simulation name. Used as filename stem for generated artifacts. |
 | `force_field_family` | string | ✅ | Typically `"calvados"`. |
-| `residue_profile` | string | ✅ | Residue profile (e.g. `"calvados2"`, `"calvados3"`, `"c2rna"`). The server auto-attaches a residues CSV for known profiles. |
+| `residue_profile` | string | ✅ | Force field selector (CALVADOS parameter set), e.g. `"calvados2"`, `"calvados3"`, `"c2rna"`. The server auto-attaches a residues CSV for known values. |
 | `temp` | number | ✅ | Temperature in Kelvin (e.g. `293.15`). |
 | `ionic` | number | ✅ | Ionic strength in M (e.g. `0.15`). |
 | `pH` | number | ✅ | pH (e.g. `7.5`). |

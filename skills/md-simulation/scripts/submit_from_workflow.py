@@ -70,7 +70,13 @@ def main() -> None:
     )
     parser.add_argument("--preset", default=None, help="OpenMM preset override.")
     parser.add_argument("--force-field-family", default=None, help="Force field family override.")
-    parser.add_argument("--profile", default=None, help="Residue profile override.")
+    parser.add_argument(
+        "--profile",
+        "--force-field",
+        dest="profile",
+        default=None,
+        help="Force field override (workflow_input.residue_profile).",
+    )
     parser.add_argument("--temperature", type=float, default=None, help="Temperature override in K.")
     parser.add_argument("--ionic", type=float, default=None, help="Ionic strength override in M.")
     parser.add_argument("--ph", type=float, default=None, help="pH override.")

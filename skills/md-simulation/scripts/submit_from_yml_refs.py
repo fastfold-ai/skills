@@ -84,7 +84,13 @@ def main() -> None:
         default=None,
         help="OpenMM component selector (workflow_input.component_name).",
     )
-    parser.add_argument("--profile", default="calvados3", help="Residue profile (calvados2/calvados3/c2rna/...).")
+    parser.add_argument(
+        "--profile",
+        "--force-field",
+        dest="profile",
+        default="calvados3",
+        help="Force field (workflow_input.residue_profile), e.g. calvados2/calvados3/c2rna/...",
+    )
     parser.add_argument("--temperature", type=float, default=293.15, help="Temperature in K.")
     parser.add_argument("--ionic", type=float, default=0.15, help="Ionic strength in M.")
     parser.add_argument("--ph", type=float, default=7.5, help="pH.")

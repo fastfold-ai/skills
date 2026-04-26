@@ -45,7 +45,13 @@ def main() -> None:
     parser.add_argument("--simulation-name", default=None, help="OpenMM simulation name (workflow_input.name).")
     parser.add_argument("--preset", default="single_af_go", choices=["single_af_go"],
                         help="OpenMM input preset. Only single_af_go is supported for fold-job mode.")
-    parser.add_argument("--profile", default="calvados3", help="Residue profile (calvados2/calvados3/c2rna/...).")
+    parser.add_argument(
+        "--profile",
+        "--force-field",
+        dest="profile",
+        default="calvados3",
+        help="Force field (workflow_input.residue_profile), e.g. calvados2/calvados3/c2rna/...",
+    )
     parser.add_argument("--temperature", type=float, default=293.15, help="Temperature in K.")
     parser.add_argument("--ionic", type=float, default=0.15, help="Ionic strength in M.")
     parser.add_argument("--ph", type=float, default=7.5, help="pH.")
