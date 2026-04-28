@@ -1,4 +1,4 @@
-# Auth & API Reference (md-simulation)
+# Auth & API Reference (md-openmm-calvados)
 
 ## Base URL
 

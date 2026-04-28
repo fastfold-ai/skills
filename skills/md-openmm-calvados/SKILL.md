@@ -1,5 +1,5 @@
 ---
-name: md-simulation
+name: md-openmm-calvados
 description: Run molecular dynamics (MD) simulations via the FastFold Workflows API. Today supports the CALVADOS+OpenMM workflow (calvados_openmm_v1) from either an existing fold job (AF structure + PAE auto-resolved) or manual PDB+PAE upload, then waits for completion, fetches metrics/plots/CSV artifacts, and extracts trajectory frames as PDB files. Use when running an MD simulation with FastFold, CALVADOS + OpenMM, reading MD metrics/plots, extracting frames, or scripting submit → wait → results for an MD run.
 ---
 
@@ -45,10 +45,10 @@ Do **not** ask users to paste secrets in chat.
 
 ## Running Scripts
 
-Scripts live under `skills/md-simulation/scripts/` and use only the Python standard library. Run them from the skill directory:
+Scripts live under `skills/md-openmm-calvados/scripts/` and use only the Python standard library. Run them from the skill directory:
 
 ```bash
-cd skills/md-simulation
+cd skills/md-openmm-calvados
 ```
 
 Available scripts:

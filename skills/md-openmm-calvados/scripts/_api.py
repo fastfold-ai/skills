@@ -1,5 +1,5 @@
 """
-Small shared HTTP + multipart helpers for the md-simulation skill.
+Small shared HTTP + multipart helpers for the md-openmm-calvados skill.
 
 Keeps scripts stdlib-only (urllib) and avoids duplication across scripts.
 """
