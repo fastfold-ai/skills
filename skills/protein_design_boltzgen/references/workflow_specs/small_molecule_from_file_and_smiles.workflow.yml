@@ -1,0 +1,57 @@
+# Replace placeholder tokens with real values from your Library uploads.
+version: 1
+jobs:
+  start:
+    type: start
+    label: Start
+    description: Workflow start point
+    position:
+      x: 66.67
+      y: 133.33
+
+  design_spec_4g37:
+    type: input
+    subType: design_specification_yml
+    workflowTaskTypeId: input_design_spec_boltzgen_v1
+    label: Design Spec
+    position:
+      x: 327.78
+      y: 133.33
+    inputPayload:
+      inputYML: "__SPEC_FILE_NAME_4G37__"
+      inputYMLLibraryItemId: "__SPEC_ITEM_ID_4G37__"
+      files:
+        - libraryItemId: "__TARGET_ITEM_ID_4G37_PDB__"
+          fileName: "__TARGET_FILE_NAME_4G37_PDB__"
+
+  run_boltzgen:
+    type: pipeline
+    subType: boltzgen
+    workflowTaskTypeId: pipeline_run_boltzgen_v1
+    label: BoltzGen
+    position:
+      x: 588.89
+      y: 133.33
+    inputPayload:
+      protocolName: protein-anything
+      numDesigns: 5
+      budget: 2
+
+  end:
+    type: end
+    label: End
+    description: Workflow end point
+    position:
+      x: 850.0
+      y: 133.33
+
+workflows:
+  main:
+    jobs:
+      - start
+      - design_spec_4g37:
+          requires: [start]
+      - run_boltzgen:
+          requires: [design_spec_4g37]
+      - end:
+          requires: [run_boltzgen]

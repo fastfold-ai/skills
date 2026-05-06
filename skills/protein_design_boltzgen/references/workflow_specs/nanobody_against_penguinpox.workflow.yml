@@ -1,0 +1,168 @@
+# Replace placeholder tokens with real values from your Library uploads.
+version: 1
+jobs:
+  start:
+    type: start
+    label: Start
+    description: Workflow start point
+    position:
+      x: 66.67
+      y: 244.44
+
+  design_spec_7eow:
+    type: input
+    subType: design_specification_yml
+    workflowTaskTypeId: input_design_spec_boltzgen_v1
+    label: Design Spec
+    position:
+      x: 327.78
+      y: 22.22
+    inputPayload:
+      inputYML: "__SPEC_FILE_NAME_7EOW__"
+      inputYMLLibraryItemId: "__SPEC_ITEM_ID_7EOW__"
+      files:
+        - libraryItemId: "__TARGET_ITEM_ID_7EOW_CIF__"
+          fileName: "__TARGET_FILE_NAME_7EOW_CIF__"
+
+  design_spec_7xl0:
+    type: input
+    subType: design_specification_yml
+    workflowTaskTypeId: input_design_spec_boltzgen_v1
+    label: Design Spec
+    position:
+      x: 327.78
+      y: 133.33
+    inputPayload:
+      inputYML: "__SPEC_FILE_NAME_7XL0__"
+      inputYMLLibraryItemId: "__SPEC_ITEM_ID_7XL0__"
+      files:
+        - libraryItemId: "__TARGET_ITEM_ID_7XL0_CIF__"
+          fileName: "__TARGET_FILE_NAME_7XL0_CIF__"
+
+  design_spec_gontivimab:
+    type: input
+    subType: design_specification_yml
+    workflowTaskTypeId: input_design_spec_boltzgen_v1
+    label: Design Spec
+    position:
+      x: 327.78
+      y: 244.44
+    inputPayload:
+      inputYML: "__SPEC_FILE_NAME_GONTIVIMAB__"
+      inputYMLLibraryItemId: "__SPEC_ITEM_ID_GONTIVIMAB__"
+      files:
+        - libraryItemId: "__TARGET_ITEM_ID_GONTIVIMAB_CIF__"
+          fileName: "__TARGET_FILE_NAME_GONTIVIMAB_CIF__"
+
+  design_spec_isecarosmab:
+    type: input
+    subType: design_specification_yml
+    workflowTaskTypeId: input_design_spec_boltzgen_v1
+    label: Design Spec
+    position:
+      x: 327.78
+      y: 355.56
+    inputPayload:
+      inputYML: "__SPEC_FILE_NAME_ISECAROSMAB__"
+      inputYMLLibraryItemId: "__SPEC_ITEM_ID_ISECAROSMAB__"
+      files:
+        - libraryItemId: "__TARGET_ITEM_ID_ISECAROSMAB_CIF__"
+          fileName: "__TARGET_FILE_NAME_ISECAROSMAB_CIF__"
+
+  design_spec_sonelokimab:
+    type: input
+    subType: design_specification_yml
+    workflowTaskTypeId: input_design_spec_boltzgen_v1
+    label: Design Spec
+    position:
+      x: 327.78
+      y: 466.67
+    inputPayload:
+      inputYML: "__SPEC_FILE_NAME_SONELOKIMAB__"
+      inputYMLLibraryItemId: "__SPEC_ITEM_ID_SONELOKIMAB__"
+      files:
+        - libraryItemId: "__TARGET_ITEM_ID_SONELOKIMAB_CIF__"
+          fileName: "__TARGET_FILE_NAME_SONELOKIMAB_CIF__"
+
+  design_spec_penguinpox_main:
+    type: input
+    subType: design_specification_yml
+    workflowTaskTypeId: input_design_spec_boltzgen_v1
+    label: Design Spec
+    position:
+      x: 588.89
+      y: 244.44
+    inputPayload:
+      inputYML: "__SPEC_FILE_NAME_PENGUINPOX_MAIN__"
+      inputYMLLibraryItemId: "__SPEC_ITEM_ID_PENGUINPOX_MAIN__"
+      files:
+        - libraryItemId: "__TARGET_ITEM_ID_9BKQ_ASSEMBLY2_CIF__"
+          fileName: "__TARGET_FILE_NAME_9BKQ_ASSEMBLY2_CIF__"
+        - libraryItemId: "__SPEC_ITEM_ID_7EOW__"
+          fileName: "__SPEC_FILE_NAME_7EOW__"
+        - libraryItemId: "__SPEC_ITEM_ID_7XL0__"
+          fileName: "__SPEC_FILE_NAME_7XL0__"
+        - libraryItemId: "__SPEC_ITEM_ID_GONTIVIMAB__"
+          fileName: "__SPEC_FILE_NAME_GONTIVIMAB__"
+        - libraryItemId: "__SPEC_ITEM_ID_ISECAROSMAB__"
+          fileName: "__SPEC_FILE_NAME_ISECAROSMAB__"
+        - libraryItemId: "__SPEC_ITEM_ID_SONELOKIMAB__"
+          fileName: "__SPEC_FILE_NAME_SONELOKIMAB__"
+        - libraryItemId: "__TARGET_ITEM_ID_7EOW_CIF__"
+          fileName: "__TARGET_FILE_NAME_7EOW_CIF__"
+        - libraryItemId: "__TARGET_ITEM_ID_7XL0_CIF__"
+          fileName: "__TARGET_FILE_NAME_7XL0_CIF__"
+        - libraryItemId: "__TARGET_ITEM_ID_GONTIVIMAB_CIF__"
+          fileName: "__TARGET_FILE_NAME_GONTIVIMAB_CIF__"
+        - libraryItemId: "__TARGET_ITEM_ID_ISECAROSMAB_CIF__"
+          fileName: "__TARGET_FILE_NAME_ISECAROSMAB_CIF__"
+        - libraryItemId: "__TARGET_ITEM_ID_SONELOKIMAB_CIF__"
+          fileName: "__TARGET_FILE_NAME_SONELOKIMAB_CIF__"
+
+  run_boltzgen:
+    type: pipeline
+    subType: boltzgen
+    workflowTaskTypeId: pipeline_run_boltzgen_v1
+    label: BoltzGen
+    position:
+      x: 850.0
+      y: 244.44
+    inputPayload:
+      protocolName: protein-anything
+      numDesigns: 5
+      budget: 2
+
+  end:
+    type: end
+    label: End
+    description: Workflow end point
+    position:
+      x: 1110.0
+      y: 244.44
+
+workflows:
+  main:
+    jobs:
+      - start
+      - design_spec_7eow:
+          requires: [start]
+      - design_spec_7xl0:
+          requires: [start]
+      - design_spec_gontivimab:
+          requires: [start]
+      - design_spec_isecarosmab:
+          requires: [start]
+      - design_spec_sonelokimab:
+          requires: [start]
+      - design_spec_penguinpox_main:
+          requires:
+            - start
+            - design_spec_7eow
+            - design_spec_7xl0
+            - design_spec_gontivimab
+            - design_spec_isecarosmab
+            - design_spec_sonelokimab
+      - run_boltzgen:
+          requires: [design_spec_penguinpox_main]
+      - end:
+          requires: [run_boltzgen]

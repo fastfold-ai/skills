@@ -1,0 +1,14 @@
+entities:
+  - file:
+      path: 9bkq-assembly2.cif # penguinpox target
+      include:
+        - chain:
+            id: B
+
+  - file:
+      path:
+        - ../nanobody_scaffolds/7eow.yaml
+        - ../nanobody_scaffolds/7xl0.yaml
+        - ../nanobody_scaffolds/gontivimab.yaml
+        - ../nanobody_scaffolds/isecarosmab.yaml
+        - ../nanobody_scaffolds/sonelokimab.yaml
