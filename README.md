@@ -30,6 +30,14 @@ Use Boltz-2 in Fastfold with affinity property to the ligand. Fold this protein:
 
 Skills in this repo live in the **`skills/`** folder.
 
+| Skill | Primary use |
+|---|---|
+| `fold` | FastFold Jobs API submission, waiting, and result retrieval |
+| `protein_design_boltzgen` | BoltzGen protein design workflow orchestration |
+| `md-openmm-calvados` | CALVADOS + OpenMM molecular dynamics workflows |
+| `md-openmmdl` | OpenMMDL protein-ligand molecular dynamics workflows |
+| `slack_report` | Post markdown reports to Slack and save library copies |
+
 ### fold
 
 Submits and manages FastFold protein folding jobs via the Jobs API. Covers authentication, creating jobs, polling for completion, and fetching CIF/PDB URLs, metrics, and 3D viewer links.
@@ -52,6 +60,37 @@ Submits and manages FastFold protein folding jobs via the Jobs API. Covers authe
 - `get_viewer_link.py` – print Mol* viewer URL: `https://cloud.fastfold.ai/mol/new?from=jobs&job_id=<id>`
 
 **Requires:** `FASTFOLD_API_KEY` from `.env` or environment. Agent will ask the user to set it locally before continuing if missing.
+
+### protein_design_boltzgen
+
+BoltzGen protein design workflow automation (draft -> upsert -> execute -> ranked candidates).
+
+**Use when:**
+- Running BoltzGen design workflows from presets or custom specs
+- Asking for example-first setup with bundled workflow examples
+- Fetching ranked candidates, metrics, and Mol* links
+
+**Key scripts:**
+- `workflow_api.py` – create/upload/build/upsert/execute/wait/results
+- `fetch_cif.py` – fetch candidate CIF artifacts
+
+### md-openmm-calvados
+
+CALVADOS + OpenMM workflow automation via the Workflows API (`calvados_openmm_v1`).
+
+**Use when:**
+- Running OpenMM simulations from completed fold jobs
+- Submitting manual PDB + PAE simulation inputs
+- Fetching workflow metrics, artifacts, and extracted frames
+
+### md-openmmdl
+
+OpenMMDL protein-ligand workflow automation via the Workflows API (`openmmdl_v1`).
+
+**Use when:**
+- Submitting topology + ligand based MD jobs
+- Preparing/executing draft OpenMMDL scripts
+- Fetching analysis artifacts and trajectory frames
 
 ### slack_report
 
