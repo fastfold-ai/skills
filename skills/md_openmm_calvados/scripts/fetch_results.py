@@ -16,7 +16,11 @@ import argparse
 import json
 import sys
 
-from _api import build_result_links, http_json, summarize_task_result
+from _api import (
+    build_result_links,
+    http_json,
+    summarize_task_result,
+)
 from load_env import resolve_fastfold_api_key
 from security_utils import validate_base_url, validate_workflow_id
 

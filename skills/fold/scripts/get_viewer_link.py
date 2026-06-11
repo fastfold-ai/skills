@@ -14,12 +14,11 @@ Environment: FASTFOLD_API_KEY (optional; only needed if you pass --check to veri
 
 import argparse
 import json
-import os
 import sys
 import urllib.error
 import urllib.request
 
-from load_env import load_dotenv
+from load_env import resolve_fastfold_api_key
 from security_utils import validate_base_url, validate_job_id, validate_results_payload
 
 VIEWER_URL_TEMPLATE = "https://cloud.fastfold.ai/job/{job_id}?shared=true"
@@ -52,16 +51,18 @@ def get_results(base_url: str, api_key: str, job_id: str) -> dict:
 
 
 def main():
-    load_dotenv()
     ap = argparse.ArgumentParser(description="Print FastFold viewer URL for a job.")
     ap.add_argument("job_id", help="FastFold job ID (UUID)")
     ap.add_argument("--base-url", default="https://api.fastfold.ai", help="API base URL (for --check)")
     ap.add_argument("--check", action="store_true", help="Verify job exists via API before printing URL")
     args = ap.parse_args()
 
-    api_key = os.environ.get("FASTFOLD_API_KEY")
+    api_key = resolve_fastfold_api_key()
     if args.check and not api_key:
-        sys.exit("Error: --check requires FASTFOLD_API_KEY in .env or environment.")
+        sys.exit(
+            "Error: --check requires FASTFOLD_API_KEY. "
+            "Run `fastfold setup` or set `api.fastfold_cloud_key` in FastFold CLI config."
+        )
 
     job_id = validate_job_id(args.job_id)
     base_url = validate_base_url(args.base_url)

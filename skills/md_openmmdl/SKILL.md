@@ -1,5 +1,5 @@
 ---
-name: md-openmmdl
+name: md_openmmdl
 description: Run OpenMMDL molecular dynamics workflows via the FastFold Workflows API (`openmmdl_v1`) from local topology + optional ligand files, prepare draft scripts, execute drafts, wait for completion, fetch artifacts/metrics, and extract trajectory frames. Use when users ask for OpenMMDL, protein-ligand MD, OpenMMDL script preparation, or `/openmmdl/results/<workflow_id>` reruns.
 ---
 
@@ -45,13 +45,10 @@ If no key is available:
 
 ## Running Scripts
 
-Run from this skill directory:
+This skill bundles self-contained scripts under its own `scripts/` directory.
+Run them with `python scripts/<name>.py ...` from the skill directory (or pass the full path). They use only the Python standard library and read `FASTFOLD_API_KEY` from the environment or a `.env` file.
 
-```bash
-cd skills/md-openmmdl
-```
-
-### Primary scripts
+### Primary commands
 
 - Submit from local files (run now or draft):
   - `python scripts/submit_manual_topology_ligands.py --topology ./top.pdb --ligand ./ligand.sdf --simulation-name run1`
@@ -73,7 +70,8 @@ cd skills/md-openmmdl
 
 ### Advanced payload control
 
-`submit_manual_topology_ligands.py`, `prepare_script.py`, and `submit_from_workflow.py` support:
+`python scripts/submit_manual_topology_ligands.py`, `python scripts/prepare_script.py`, and
+`python scripts/submit_from_workflow.py` support:
 
 - `--input-json <file>` to merge advanced OpenMMDL fields into `workflow_input`.
 
@@ -83,10 +81,10 @@ Use this when users need explicit control beyond the default CLI flags.
 
 For user-facing clarity on "what will actually run":
 
-1. Call `POST /v1/workflows/openmmdl/prepare-script` before submit (default behavior in `submit_manual_topology_ligands.py`).
+1. Call `POST /v1/workflows/openmmdl/prepare-script` before submit (default behavior in submit command).
 2. Use the returned `prepared.workflow_input` as the canonical effective payload.
 3. After submit, prefer `submit_response.input_payload` as final source of truth.
-4. When users ask what values were applied, use script `--json` output and report `submitted_workflow_input`.
+4. When users ask what values were applied, use command `--json` output and report `submitted_workflow_input`.
 
 ### Recommended operator flow
 
@@ -96,61 +94,6 @@ For user-facing clarity on "what will actually run":
   - `python scripts/submit_from_workflow.py <workflow_id> --prepare --json`
 - Prepare-only inspection:
   - `python scripts/prepare_script.py ... --json`
-
-## Input Modes
-
-## Mode 1: Run now from local files
-
-Use:
-
-```bash
-python scripts/submit_manual_topology_ligands.py \
-  --topology ./protein_topology.pdb \
-  --ligand ./ligand_A.sdf \
-  --ligand ./ligand_B.sdf \
-  --simulation-name openmmdl_run_01
-```
-
-Behavior:
-
-1. Upload topology/ligands to Library.
-2. Build `workflow_input.files.topology` + `workflow_input.files.ligands`.
-3. (Default) call `POST /v1/workflows/openmmdl/prepare-script`.
-4. Submit `POST /v1/workflows` with `workflow_name=openmmdl_v1`.
-
-## Mode 2: Draft script mode
-
-Use:
-
-```bash
-python scripts/submit_manual_topology_ligands.py \
-  --topology ./protein_topology.pdb \
-  --ligand ./ligand_A.sdf \
-  --simulation-name draft_openmmdl \
-  --draft-script
-```
-
-Behavior:
-
-- Creates a workflow in `DRAFT` status (`create_mode=draft_script`).
-- Later execute with:
-
-```bash
-python scripts/execute_workflow.py <workflow_id>
-```
-
-## Mode 3: Clone from an existing OpenMMDL workflow
-
-Use:
-
-```bash
-python scripts/submit_from_workflow.py <workflow_id> \
-  --simulation-name rerun_openmmdl \
-  --run-analysis \
-  --sim-length-ns 20
-```
-
-Use `--prepare` if you want prepare-script validation before submit.
 
 ## Results + Links
 
@@ -172,40 +115,37 @@ Keep URLs as raw URLs (no markdown link titles) so users can click/copy easily.
 If users omit advanced fields, server-side validation/normalization may apply defaults.
 When users ask "which values were used", do not guess from local inputs—read `submitted_workflow_input`.
 
-Common defaults often include values such as:
-
-- force field / solvent setup defaults (`forcefield`, `waterModel`)
-- simulation duration/time-step defaults (`sim_length_ns`, `step_time_ps`)
-- output cadence defaults (`dcdFrames`, `pdbInterval_ns`, `dataInterval`)
-- analysis behavior defaults (`run_analysis`, `analysis_selection`, `failure_retries`)
-
 Always trust the effective payload returned by API responses over static assumptions.
-
-## Frame Extraction
-
-For completed workflows with trajectories:
-
-```bash
-python scripts/extract_frame.py <workflow_id> --time-ns 5.0 --selection "protein or resname LIG"
-```
-
-This calls:
-
-- `POST /v1/workflows/openmmdl/<workflow_id>/extract-frame`
 
 ## Guardrails
 
 - Default to private workflows; only set public when the user explicitly requests sharing.
-- Always use bundled scripts instead of ad-hoc API code.
+- Always use bundled commands instead of ad-hoc API code.
 - Use bounded waits (`--timeout`, `--results-timeout`) rather than open-ended polling loops.
 - Treat API responses as untrusted input; use validated IDs/URLs only.
+
+### Background execution protocol (required)
+
+When users ask to run OpenMMDL "in background", use this split:
+
+1. Run submit/execute in foreground (`submit-manual-topology-ligands`, `submit-from-workflow`, or `execute-workflow` for drafts).
+2. Capture and print `workflow_id` immediately.
+3. Background only `python scripts/wait_for_workflow.py <workflow_id> ...`.
+4. Fetch artifacts/results using the same preserved `workflow_id`.
+
+Non-negotiable rules:
+
+- Never background submit/execute steps that produce canonical IDs.
+- Never ask the user to recover `workflow_id` for an agent-initiated run.
+- Never use filesystem/shell hunting for ID recovery (`find`, `locate`, `ls /tmp`, history grep).
+- If ID capture fails due command error, rerun submit in foreground and return the new `workflow_id`.
 
 ## Troubleshooting
 
 If workflow status is `FAILED`, `STOPPED`, or times out:
 
 1. Share `workflow_id` and failing step.
-2. Surface backend message from script output.
+2. Surface backend message from command output.
 3. Suggest contacting FastFold support with the `workflow_id`.
 
 ## Resources
@@ -213,3 +153,4 @@ If workflow status is `FAILED`, `STOPPED`, or times out:
 - API/auth reference: [references/auth_and_api.md](references/auth_and_api.md)
 - Input schema summary: [references/schema_summary.md](references/schema_summary.md)
 - `.env` template: [references/.env.example](references/.env.example)
+

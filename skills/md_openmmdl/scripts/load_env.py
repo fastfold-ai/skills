@@ -80,3 +80,4 @@ def _parse_and_set(env_path: str) -> None:
                 value = value[1:-1]
             if key not in os.environ and value:
                 os.environ[key] = value
+

@@ -25,7 +25,12 @@ import json
 import sys
 import time
 
-from _api import TERMINAL_WORKFLOW_STATES, build_result_links, http_json, summarize_task_result
+from _api import (
+    TERMINAL_WORKFLOW_STATES,
+    build_result_links,
+    http_json,
+    summarize_task_result,
+)
 from load_env import resolve_fastfold_api_key
 from security_utils import validate_base_url, validate_workflow_id
 

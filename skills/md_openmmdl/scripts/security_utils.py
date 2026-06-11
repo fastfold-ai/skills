@@ -71,3 +71,4 @@ def validate_artifact_url(url: str) -> str:
     if parsed.username or parsed.password:
         sys.exit("Error: Artifact URL must not include credentials.")
     return url
+

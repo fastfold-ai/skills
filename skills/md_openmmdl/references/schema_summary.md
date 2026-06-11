@@ -117,3 +117,4 @@ For reliable user-facing reporting:
 1. Prefer `prepared.workflow_input` after `POST /v1/workflows/openmmdl/prepare-script`.
 2. Prefer `submit_response.input_payload` after `POST /v1/workflows`.
 3. Treat those payloads as the canonical "what ran" source when answering user questions.
+

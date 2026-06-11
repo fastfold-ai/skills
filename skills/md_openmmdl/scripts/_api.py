@@ -262,3 +262,4 @@ def summarize_task_result(result_raw_json: Any) -> dict:
         "artifact_count": len(normalized_artifacts),
         "artifacts": normalized_artifacts,
     }
+

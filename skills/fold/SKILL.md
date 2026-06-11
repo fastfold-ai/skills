@@ -13,16 +13,24 @@ This skill guides correct use of the [FastFold Jobs API](https://docs.fastfold.a
 
 **Get an API key:** Create a key in the [FastFold dashboard](https://cloud.fastfold.ai/api-keys). Keep it secret.
 
-**Use the key:** Scripts read `FASTFOLD_API_KEY` from `.env` or environment.
+**Use the key:** Scripts resolve credentials in this order:
+1. `FASTFOLD_API_KEY` from environment
+2. `.env` in workspace/current parent directories
+3. FastFold CLI config at `~/.fastfold-cli/config.json` (`api.fastfold_cloud_key`)
+
 Do **not** ask users to paste secrets in chat.
 
 - **`.env` file (recommended):** Scripts automatically load `FASTFOLD_API_KEY` from a `.env` file in the project root.
 - **Environment:** `export FASTFOLD_API_KEY="sk-..."` (overrides `.env`).
 - **Credential policy:** Never request, accept, echo, or store API keys in chat messages, command history, or logs.
 
-**If `FASTFOLD_API_KEY` is not set:**
-1. Copy `references/.env.example` to `.env` at the workspace root.
-2. Tell the user: *"Open the `.env` file and paste your FastFold API key after `FASTFOLD_API_KEY=`. You can create one at [FastFold API Keys](https://cloud.fastfold.ai/api-keys)."*
+**Only if no key is resolved from env/.env/config:**
+1. Generic-agent guidance (default):
+   - Tell the user to set `FASTFOLD_API_KEY` in environment or `.env`.
+   - You can create `.env` from `references/.env.example` and ask the user to add their key.
+2. Only if user is explicitly on FastFold CLI, you may suggest:
+   - `fastfold setup`
+   - `fastfold config set api.fastfold_cloud_key <key>`
 3. Do not run any job scripts until the user confirms the key is set.
 
 ## When to Use This Skill
@@ -33,11 +41,7 @@ Do **not** ask users to paste secrets in chat.
 
 ## Running Scripts
 
-Scripts live under `skills/fold/scripts/` (this skill directory). Run them with `python` from that folder (or pass the full path):
-
-```bash
-cd skills/fold   # or use paths like skills/fold/scripts/create_job.py
-```
+This skill bundles self-contained scripts under its own `scripts/` directory. Run them with `python` from the skill directory (or pass the full path), e.g. `python scripts/create_job.py ...`. They require only the Python standard library and read `FASTFOLD_API_KEY` from the environment or a `.env` file.
 
 - **Create job (simple):** `python scripts/create_job.py --name "My Job" --sequence MALW... [--model boltz-2] [--public]`
 - **Create job (full payload):** `python scripts/create_job.py --payload job.json`
@@ -49,11 +53,30 @@ cd skills/fold   # or use paths like skills/fold/scripts/create_job.py
 - **Viewer link:** `python scripts/get_viewer_link.py <job_id>`
 
 The agent should run these scripts for the user, not hand them a list of commands.
+Do not replace this flow with ad-hoc Python `requests` code, curl chains, or background polling tasks; use the bundled scripts.
+
+## Background Execution Protocol (Required)
+
+When users ask to "run fold in background", use this exact split:
+
+1. `create_job` in foreground (blocking) to obtain `job_id`.
+2. Print `job_id` back to the user immediately in plain text.
+3. Only background the long waiter step (`wait_for_completion` / `wait_for_evolla_linked` / `wait_for_openmm_linked`).
+4. On completion, fetch results using the same preserved `job_id`.
+
+Non-negotiable rules:
+
+- Never background `create_job` (submission step) because this can lose `job_id`.
+- Never attempt ID recovery via filesystem hunting (`find`, `locate`, `ls /tmp`, shell history grep).
+- Never ask the user to recover an ID when the agent initiated the submission; if ID capture failed, resubmit in foreground and return the new `job_id`.
+- Keep `job_id` visible in every relevant update message so the user can track externally.
 
 ### Agent execution guardrails (required)
 
-- Run scripts directly from this skill (`python scripts/<script>.py ...`), never via path-discovery commands such as `find`.
-- Do not generate temporary monitor scripts in `/tmp`; use `wait_for_evolla_linked.py` or `wait_for_openmm_linked.py`.
+- **Always** invoke the bundled scripts directly: `python scripts/<script>.py ...` from this skill's directory (or with the full path to the script). Do not hunt for them with `find`, `locate`, or `ls`.
+- Do **not** reimplement the flow by hand (e.g. `requests` / `urllib` POST to `/v1/jobs`). Use the bundled scripts.
+- If a script fails because `FASTFOLD_API_KEY` is unset, set it in the environment or a `.env` file (create one at https://cloud.fastfold.ai/api-keys). Do not work around it with hand-rolled code.
+- Do not generate temporary monitoring scripts in `/tmp`; call the bundled waiter directly.
 - Use bounded waits (`--timeout`, `--evolla-timeout`, `--webhook-timeout`, `--workflow-timeout`) instead of open-ended loops.
 - Treat `workflowStatus == NOT_FOUND` as a signal that webhook linkage is missing/delayed, not as a reason to keep polling indefinitely.
 
@@ -497,7 +520,11 @@ Only use `cif_url`, `pdb_url`, metrics, and viewer link when status is `COMPLETE
 https://cloud.fastfold.ai/job/<job_id>?shared=true
 ```
 
-Or use: `python scripts/get_viewer_link.py <job_id>` (from this skill’s `scripts/` directory)
+Or use: `python scripts/get_viewer_link.py <job_id>`
+
+## URL formatting (required)
+
+When presenting any URL to the user — viewer links, `cif_url`, `pdb_url`, signed artifact URLs, docs links — print the **full URL verbatim on its own line**. Do **not** wrap URLs as markdown link-titles (`[title](url)`), HTML anchors, footnotes, or numbered reference lists; terminal UIs hide the URL in those formats and the user can't click or copy it. A short descriptive prefix on the **same** line is fine (e.g. `viewer: https://cloud.fastfold.ai/job/<id>?shared=true`), but never hide the URL behind a title.
 
 ## Security Guardrails
 

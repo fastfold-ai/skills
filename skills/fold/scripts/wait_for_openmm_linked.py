@@ -2,9 +2,8 @@
 """
 Wait for a fold job, then wait for linked OpenMM webhook workflow results.
 
-Usage:
-    python scripts/wait_for_openmm_linked.py JOB_ID --json
-    python scripts/wait_for_openmm_linked.py JOB_ID --workflow-timeout 2400 --metrics-timeout 900
+This mirrors the Fold -> Evolla waiter flow, but for:
+  constraints.webhooks.openmm.enabled
 """
 
 from __future__ import annotations
@@ -19,6 +18,7 @@ import urllib.request
 
 from load_env import resolve_fastfold_api_key
 from security_utils import validate_base_url, validate_job_id, validate_results_payload
+
 
 FOLD_TERMINAL_OK = {"COMPLETED"}
 FOLD_TERMINAL_ERR = {"FAILED", "STOPPED"}
@@ -265,7 +265,10 @@ def main() -> None:
 
     api_key = resolve_fastfold_api_key()
     if not api_key:
-        sys.exit("Error: FASTFOLD_API_KEY is not configured. Set it in .env or environment.")
+        sys.exit(
+            "Error: FASTFOLD_API_KEY is not configured. "
+            "Run `fastfold setup` or set `api.fastfold_cloud_key` in FastFold CLI config."
+        )
 
     job_id = validate_job_id(args.job_id)
     base_url = validate_base_url(args.base_url)
@@ -359,7 +362,10 @@ def main() -> None:
             same_delivery_status_count = 0
             last_delivery_status = delivery_status
             if not args.quiet:
-                print(f"[FastFold] OpenMM webhook delivery status: {delivery_status}", file=sys.stderr)
+                print(
+                    f"[FastFold] OpenMM webhook delivery status: {delivery_status}",
+                    file=sys.stderr,
+                )
 
         if openmm_workflow_id and delivery_status in DELIVERY_TERMINAL_OK:
             break

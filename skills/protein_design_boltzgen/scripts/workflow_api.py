@@ -1395,14 +1395,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_wait = sub.add_parser("wait", help="Wait for terminal status.")
     p_wait.add_argument("--workflow-id", default=None, help="Workflow id (optional if in state).")
-    p_wait.add_argument("--poll-seconds", type=int, default=15, help="Polling interval.")
+    p_wait.add_argument("--poll-seconds", type=int, default=30, help="Polling interval.")
     p_wait.add_argument("--timeout-seconds", type=int, default=7200, help="Timeout.")
     p_wait.set_defaults(func=cmd_wait)
 
     p_logs = sub.add_parser("logs", help="Fetch workflow logs and explain current log meaning.")
     p_logs.add_argument("--workflow-id", default=None, help="Workflow id (optional if in state).")
     p_logs.add_argument("--watch", action="store_true", help="Poll logs until terminal status or timeout.")
-    p_logs.add_argument("--poll-seconds", type=int, default=15, help="Polling interval when --watch is set.")
+    p_logs.add_argument("--poll-seconds", type=int, default=30, help="Polling interval when --watch is set.")
     p_logs.add_argument("--timeout-seconds", type=int, default=1800, help="Timeout when --watch is set.")
     p_logs.add_argument("--tail-lines", type=int, default=120, help="Number of trailing log lines to display.")
     p_logs.add_argument("--json", action="store_true", help="Print JSON payload.")

@@ -1,5 +1,5 @@
 ---
-name: md-openmm-calvados
+name: md_openmm_calvados
 description: Run molecular dynamics (MD) simulations via the FastFold Workflows API. Today supports the CALVADOS+OpenMM workflow (calvados_openmm_v1) from either an existing fold job (AF structure + PAE auto-resolved) or manual PDB+PAE upload, then waits for completion, fetches metrics/plots/CSV artifacts, and extracts trajectory frames as PDB files. Use when running an MD simulation with FastFold, CALVADOS + OpenMM, reading MD metrics/plots, extracting frames, or scripting submit → wait → results for an MD run.
 ---
 
@@ -22,19 +22,27 @@ Completed OpenMM workflows can also extract a specific trajectory conformation w
 
 ## Authentication
 
-**Get an API key:** create one at the [FastFold dashboard](https://cloud.fastfold.ai/api-keys). Keep it secret.
+**Get an API key:** Create a key in the [FastFold dashboard](https://cloud.fastfold.ai/api-keys). Keep it secret.
 
-**Use the key:** scripts read `FASTFOLD_API_KEY` from `.env` or environment in this order:
-1. `FASTFOLD_API_KEY` already in environment.
-2. `.env` in workspace/current parent directories.
-3. FastFold CLI config at `~/.fastfold-cli/config.json` (`api.fastfold_cloud_key`).
+**Use the key:** Scripts resolve credentials in this order:
+1. `FASTFOLD_API_KEY` from environment
+2. `.env` in workspace/current parent directories
+3. FastFold CLI config at `~/.fastfold-cli/config.json` (`api.fastfold_cloud_key`)
 
 Do **not** ask users to paste secrets in chat.
 
-**If no key is resolved:**
-1. Copy `references/.env.example` to `.env` at the workspace root.
-2. Tell the user: *"Open `.env` and set `FASTFOLD_API_KEY=sk-...`. Create a key at https://cloud.fastfold.ai/api-keys."*
-3. Do not run any scripts until the user confirms the key is set.
+- **`.env` file (recommended):** Scripts automatically load `FASTFOLD_API_KEY` from a `.env` file in the project root.
+- **Environment:** `export FASTFOLD_API_KEY="sk-..."` (overrides `.env`).
+- **Credential policy:** Never request, accept, echo, or store API keys in chat messages, command history, or logs.
+
+**Only if no key is resolved from env/.env/config:**
+1. Generic-agent guidance (default):
+   - Tell the user to set `FASTFOLD_API_KEY` in environment or `.env`.
+   - You can create `.env` from `references/.env.example` and ask the user to add their key.
+2. Only if user is explicitly on FastFold CLI, you may suggest:
+   - `fastfold setup`
+   - `fastfold config set api.fastfold_cloud_key <key>`
+3. Do not run any workflow scripts until the user confirms the key is set.
 
 ## When to Use This Skill
 
@@ -45,18 +53,12 @@ Do **not** ask users to paste secrets in chat.
 
 ## Running Scripts
 
-Scripts live under `skills/md-openmm-calvados/scripts/` and use only the Python standard library. Run them from the skill directory:
-
-```bash
-cd skills/md-openmm-calvados
-```
-
-Available scripts:
+This skill bundles self-contained scripts under its own `scripts/` directory. Run them with `python scripts/<name>.py ...` from the skill directory (or pass the full path). They require only the Python standard library and read `FASTFOLD_API_KEY` from the environment or a `.env` file. Do **not** try to `find` files on disk, `cd` into package directories, or probe `uv tool dir`.
 
 - **Submit MD from a fold job (AF+PAE auto-attach):**
   `python scripts/submit_from_fold_job.py <fold_job_id> [--name "OpenMM via fold"] [--simulation-name my_run] [--preset single_af_go] [--sim-length-ns 0.2] [--step-size-ns 0.01] [--temperature 293.15] [--ionic 0.15] [--ph 7.5] [--box-length 20] [--force-field calvados3] [--charged-n-terminal-amine|--no-charged-n-terminal-amine] [--charged-c-terminal-carboxyl|--no-charged-c-terminal-carboxyl] [--charged-histidine|--no-charged-histidine] [--public]`
 - **Fetch PDB + PAE from AlphaFold DB by UniProt ID:**
-  `python scripts/fetch_uniprot.py <UNIPROT_ID> --out-dir <dir> [--json]` — writes `AF-<ID>.pdb` and `AF-<ID>.json` into `--out-dir` and prints their paths. Pipe these into `submit_manual_af_pae.py`.
+  `python scripts/fetch_uniprot.py <UNIPROT_ID> --out-dir <dir> [--json]` — writes `AF-<ID>.pdb` and `AF-<ID>.json` into `--out-dir` and prints their paths. Pipe these into `python scripts/submit_manual_af_pae.py`.
 - **Submit MD from manual PDB+PAE upload:**
   `python scripts/submit_manual_af_pae.py --pdb path/to/structure.pdb --pae path/to/pae.json [--name "OpenMM manual"] [--simulation-name my_run] [--sim-length-ns 0.2] [--step-size-ns 0.01] [--temperature 293.15] [--ionic 0.15] [--ph 7.5] [--box-length 20] [--force-field calvados3] [--charged-n-terminal-amine|--no-charged-n-terminal-amine] [--charged-c-terminal-carboxyl|--no-charged-c-terminal-carboxyl] [--charged-histidine|--no-charged-histidine] [--public]`
 - **Submit from an existing OpenMM workflow (preferred when given `/openmm/results/<workflow_id>`):**
@@ -66,9 +68,9 @@ Available scripts:
   or AF/structure mode:  
   `python scripts/submit_from_yml_refs.py --config-yaml ./config.yaml --components-yaml ./components.yaml --residues-csv ./residues.csv --pdb ./structure.pdb --pae ./pae.json [...]`
 - **Wait for workflow completion (status + metrics/plots propagation):**
-  `python scripts/wait_for_workflow.py <workflow_id> [--timeout 1800] [--metrics-timeout 900] [--poll-interval 5] [--json]`
+  `python scripts/wait_for_workflow.py <workflow_id> [--timeout 1800] [--metrics-timeout 900] [--poll-interval 5] [--json] [--public]`
 - **Fetch final results (artifacts + metrics summary):**
-  `python scripts/fetch_results.py <workflow_id> [--json]`
+  `python scripts/fetch_results.py <workflow_id> [--json] [--public]`
 - **Extract a trajectory frame as PDB:**
   `python scripts/extract_frame.py <workflow_id> --time-ns 5.0 [--selection "protein or resname LIG"] [--dt-in-ps 0] [--download ./frame.pdb] [--json]` — validates the requested time against `sim_length_ns` when available, calls the frame extraction endpoint, and prints the extracted PDB URL.
 - **Toggle public/private (share link):**
@@ -77,17 +79,35 @@ Available scripts:
 Use `--force-field` to set `workflow_input.residue_profile`. `--profile` is still accepted as a backwards-compatible alias.
 In workflow payloads, `force_field_family` is the model family (typically `calvados`) and `residue_profile` is the specific force-field parameter set (for example `calvados3` or `c2rna`).
 
-The agent runs these scripts for the user. Do not hand users a list of commands; execute them directly.
+The agent should run these scripts for the user, not hand them a list of commands.
+Do not replace this flow with ad-hoc Python `requests` code, curl chains, or probes of `which python` / `uv tool dir` — the bundled scripts above are the stable interface.
 
-### Agent execution guardrails
+### Agent execution guardrails (required)
 
-- Run scripts from this skill directory: `python scripts/<name>.py ...`. Do **not** search for them with `find` / `locate` / `ls` in arbitrary folders — they live alongside this SKILL.md.
-- Do **not** reimplement the workflow by hand (e.g. `requests` / `urllib` POST to `/v1/workflows`). Use the bundled scripts so the preset, file refs, share URLs, and settle polling behave consistently.
-- Treat `submit_from_yml_refs.py` as an advanced lane-2 tool. Use it only when the user explicitly asks for custom YML-reference uploads and file-binding control.
-- **Default to private** — do not pass `--public` to `submit_from_fold_job.py` / `submit_manual_af_pae.py`. Only add `--public` when the user **explicitly** asks for a public link, sharable link, or the workflow to be shared. Correspondingly, only surface the `?shared=true` URL when the workflow is actually public.
-- Do not generate temporary monitor scripts in `/tmp`; use `wait_for_workflow.py`.
+- **Always** call the skill by running the bundled scripts directly: `python scripts/<name>.py ...` from this skill's directory (or with the full path). Do **not** `pip list`, `which python`, `uv tool dir`, `find`, `locate`, or `ls` on package directories — just run the scripts.
+- Do **not** reimplement the workflow with ad-hoc `requests` / `urllib` POSTs to `/v1/workflows`. Use the bundled scripts so preset, file refs, share URLs, polling, and result parsing all behave consistently.
+- Treat `python scripts/submit_from_yml_refs.py` as an advanced lane-2 tool. Use it only when the user explicitly asks for custom YML-reference uploads and file-binding control.
+- **Default to private** — do not pass `--public`. Only add `--public` (to `python scripts/submit_from_fold_job.py` / `python scripts/submit_manual_af_pae.py`) when the user **explicitly** asks for a public link, sharable link, or the workflow to be shared/made public. Correspondingly, only surface the `?shared=true` URL to the user when the workflow is actually public.
+- If a script fails because `FASTFOLD_API_KEY` is unset, set it in the environment or a `.env` file (create one at https://cloud.fastfold.ai/api-keys). Do not attempt to work around it by hunting for scripts or rolling your own code.
+- Do not generate temporary monitor scripts in `/tmp`; use `python scripts/wait_for_workflow.py`.
 - Use bounded waits (`--timeout` and `--metrics-timeout`), never open-ended loops.
-- Metrics and plot artifacts can appear slightly **after** first terminal status; `wait_for_workflow.py` handles the extra settle window for you.
+- Metrics and plot artifacts can appear slightly **after** first terminal status; `python scripts/wait_for_workflow.py` handles the extra settle window for you.
+
+### Background execution protocol (required)
+
+When users ask to run OpenMM-CALVADOS "in background", use this split:
+
+1. Run submit command in foreground (`submit-from-fold-job`, `submit-manual-af-pae`, or `submit-from-workflow`).
+2. Capture and print `workflow_id` immediately.
+3. Background only `python scripts/wait_for_workflow.py <workflow_id> ...`.
+4. On completion, fetch results using the same preserved `workflow_id`.
+
+Non-negotiable rules:
+
+- Never background submit commands that produce `workflow_id`.
+- Never ask the user to recover `workflow_id` for an agent-initiated run.
+- Never attempt ID recovery with filesystem/shell hunting (`find`, `locate`, `ls /tmp`, history grep).
+- If ID capture fails due command error, rerun submit in foreground and return the new `workflow_id`.
 
 ## Workflow: Submit → Wait → Results
 
@@ -140,6 +160,47 @@ Use when the user already has an existing FastFold fold job (AlphaFold2/OpenFold
 
 The backend auto-attaches `files.pdb` and `files.pae` from the source fold job.
 
+`submit_from_fold_job` runs all of step 1 and step 2 for you.
+
+## Input Mode 2 — Manual PDB + PAE upload
+
+Use when the user has local `.pdb` structure + `.json` PAE files (e.g., an AlphaFold EBI PAE JSON).
+
+1. Create a Library item per file:
+   - `POST /v1/library/create` with body `{ "name": "...", "type": "file", "fileType": "protein" | "json", "origin": "USER_UPLOAD", "metadata": {} }`
+   - Returns `201` with `id` (use this as `libraryItemId`).
+2. Upload the file to the item:
+   - `POST /v1/library/<item_id>/upload-files` as `multipart/form-data` with field `files=@<path>`.
+3. Read back the server-stored filename:
+   - `GET /v1/library/<item_id>` → use `metadata.files[0].file_name` (UUID-prefixed on the server).
+4. Submit the workflow with the refs:
+
+```json
+{
+  "workflow_name": "calvados_openmm_v1",
+  "name": "OpenMM AF+PAE manual upload",
+  "workflow_input": {
+    "preset": "single_af_go",
+    "name": "manual_af_pae_run",
+    "force_field_family": "calvados",
+    "residue_profile": "calvados3",
+    "temp": 293.15,
+    "ionic": 0.15,
+    "pH": 7.5,
+    "step_size_ns": 0.01,
+    "sim_length_ns": 0.2,
+    "box_length": 20,
+    "files": {
+      "pdb": { "libraryItemId": "<PDB_ITEM_ID>", "fileName": "<PDB_STORED_FILE_NAME>" },
+      "pae": { "libraryItemId": "<PAE_ITEM_ID>", "fileName": "<PAE_STORED_FILE_NAME>" }
+    },
+    "isPublic": true
+  }
+}
+```
+
+`submit_manual_af_pae` runs all four steps for you.
+
 ## Input Mode 0 — Submit from an existing OpenMM workflow
 
 Use this when the user gives an `/openmm/results/<workflow_id>` page as the
@@ -151,7 +212,7 @@ explicitly, applies any parameter values the user stated, then submits a new
 Component selection rule (important):
 - Use `workflow_input.component_name` to choose which sequence/component CALVADOS runs.
 - For sequence preset (`single_idr_fasta`), `component_name` must match a sequence label or FASTA record ID.
-- Use `--component-name` in `submit_from_workflow.py` whenever the source has multiple sequence labels.
+- Use `--component-name` in `python scripts/submit_from_workflow.py` whenever the source has multiple sequence labels.
 - Box-equilibration controls are standard params: use `--box-eq/--no-box-eq`, `--pressure X,Y,Z`, and `--periodic/--no-periodic` to override `workflow_input.config.box_eq`, `workflow_input.config.pressure`, and `workflow_input.component_defaults.periodic`.
 - Charge-state controls are standard boolean flags: use `--charged-n-terminal-amine/--no-charged-n-terminal-amine`, `--charged-c-terminal-carboxyl/--no-charged-c-terminal-carboxyl`, and `--charged-histidine/--no-charged-histidine`.
 
@@ -194,43 +255,6 @@ the workflow/files, or switch to another input mode:
 - use `python scripts/fetch_uniprot.py` followed by `python scripts/submit_manual_af_pae.py` if they know a UniProt accession;
 - use `python scripts/submit_from_fold_job.py` if the source is an accessible FastFold fold job.
 
-## Input Mode 2 — Manual PDB + PAE upload
-
-Use when the user has local `.pdb` structure + `.json` PAE files (e.g., an AlphaFold EBI PAE JSON).
-
-1. Create a Library item per file:
-   - `POST /v1/library/create` with body `{ "name": "...", "type": "file", "fileType": "protein" | "json", "origin": "USER_UPLOAD", "metadata": {} }`
-   - Returns `201` with `id` (use this as `libraryItemId`).
-2. Upload the file to the item:
-   - `POST /v1/library/<item_id>/upload-files` as `multipart/form-data` with field `files=@<path>`.
-3. Read back the server-stored filename:
-   - `GET /v1/library/<item_id>` → use `metadata.files[0].file_name` (UUID-prefixed on the server).
-4. Submit the workflow with the refs:
-
-```json
-{
-  "workflow_name": "calvados_openmm_v1",
-  "name": "OpenMM AF+PAE manual upload",
-  "workflow_input": {
-    "preset": "single_af_go",
-    "name": "manual_af_pae_run",
-    "force_field_family": "calvados",
-    "residue_profile": "calvados3",
-    "temp": 293.15,
-    "ionic": 0.15,
-    "pH": 7.5,
-    "step_size_ns": 0.01,
-    "sim_length_ns": 0.2,
-    "box_length": 20,
-    "files": {
-      "pdb": { "libraryItemId": "<PDB_ITEM_ID>", "fileName": "<PDB_STORED_FILE_NAME>" },
-      "pae": { "libraryItemId": "<PAE_ITEM_ID>", "fileName": "<PAE_STORED_FILE_NAME>" }
-    },
-    "isPublic": true
-  }
-}
-```
-
 ### Shortcut — From a UniProt ID (AlphaFold DB)
 
 When the user gives a UniProt accession (e.g. `P00698`) instead of local files, mirror the `/openmm/new` UniProt action: pull the AlphaFold DB PDB + PAE JSON, then reuse the manual-upload flow.
@@ -245,7 +269,7 @@ Use this only with preset `single_af_go`.
 
 Use only when the user explicitly asks for this advanced lane-2 flow.
 
-`submit_from_yml_refs.py` does the following:
+`python scripts/submit_from_yml_refs.py` does the following:
 
 1. Uploads `config.yaml`, `components.yaml`, and required input files (residues + FASTA or residues + PDB/PAE) to Library.
 2. Submits a runnable OpenMM workflow using explicit supported fields and `files` refs.
@@ -254,7 +278,7 @@ Use only when the user explicitly asks for this advanced lane-2 flow.
 Important behavior:
 - Runtime execution still follows explicit OpenMM fields and file refs.
 - YML is preserved as reference metadata (`yml_reference`) for reproducibility.
-- This is advanced and should not replace standard `submit_from_fold_job.py`, `submit_manual_af_pae.py`, or `submit_from_workflow.py` flows.
+- This is advanced and should not replace standard `python scripts/submit_from_fold_job.py`, `python scripts/submit_manual_af_pae.py`, or `python scripts/submit_from_workflow.py` flows.
 
 ## Reading Results
 
@@ -267,7 +291,7 @@ On a successful run, `tasks[-1].result_raw_json` contains:
   - `analysis_name`, `analysis_parameters`, `output_files`
 - `metricsJson`: raw `analysis/metrics.json` content (also downloadable as artifact).
 
-Use `scripts/fetch_results.py <workflow_id>` to print a concise summary and the artifact URLs.
+Use `python scripts/fetch_results.py <workflow_id>` to print a concise summary and the artifact URLs.
 
 ## Extracting a Frame as PDB
 
@@ -283,13 +307,13 @@ Optional parameters:
 - `--download ./frame.pdb` — also download the returned PDB URL to a local path.
 - `--json` — print the full response.
 
-The script fetches the workflow first and validates `--time-ns` against `sim_length_ns` when available. The API still extracts the closest available trajectory frame and returns `frameIndex`, `actualTimeNs`, `atomCount`, and a signed `pdbUrl`.
+The command fetches the workflow first and validates `--time-ns` against `sim_length_ns` when available. The API still extracts the closest available trajectory frame and returns `frameIndex`, `actualTimeNs`, `atomCount`, and a signed `pdbUrl`.
 
 ## After completion — always share these links
 
 As soon as the workflow is terminal with results populated, the agent must proactively surface two links to the user.
 
-**URL formatting rule (required):** print every URL as a bare, unwrapped URL on its own line, exactly as emitted by the scripts. Do **not** wrap URLs as markdown link-titles (`[title](url)`), HTML anchors, footnotes, or numbered reference lists — terminal UIs render those with the URL hidden, so the user can't click or copy it. Also do not shorten or truncate URLs.
+**URL formatting rule (required):** print every URL as a bare, unwrapped URL on its own line, exactly as emitted by the scripts. Do **not** wrap URLs as markdown link-titles (`[title](url)`), HTML anchors, footnotes, or numbered reference lists — the `fastfold` terminal UI (and many other CLI chat UIs) render those with the URL hidden, so the user can't click or copy it. Also do not shorten or truncate URLs.
 
 1. **Fastfold Cloud dashboard (always)** — where the user can browse the run, view plots inline, and download artifacts. Print verbatim:
 
@@ -313,7 +337,7 @@ As soon as the workflow is terminal with results populated, the agent must proac
 
 3. **Individual plot/data URLs** — each `artifacts[].url` that ends in `.png` / `.svg` / `.csv` / `.json` should likewise be printed as a bare URL on its own line, prefixed with its filename (e.g. `rmsd.png: https://…`). No markdown link-titles, no numbered lists of short labels.
 
-`wait_for_workflow.py` and `fetch_results.py` already print these URLs as raw strings; forward them to the user verbatim — do not reformat.
+`wait_for_workflow` and `fetch_results` already print these URLs as raw strings; forward them to the user verbatim — do not reformat.
 
 ## Workflow Status Values
 
@@ -330,7 +354,7 @@ Only trust `artifacts`, `metrics`, `metricsJson` when task status is `COMPLETED`
 
 Workflows default to **private**. Two ways to make a run public:
 
-1. At submit time: pass `--public` to `submit_from_fold_job.py` or `submit_manual_af_pae.py`, which adds `workflow_input.isPublic = true` to `POST /v1/workflows`.
+1. At submit time: pass `--public` to `submit_from_fold_job` or `submit_manual_af_pae`, which adds `workflow_input.isPublic = true` to `POST /v1/workflows`.
 2. After submit: `python scripts/toggle_public.py <workflow_id> --public` (or `--private`) which calls `PATCH /v1/workflows/<workflow_id>/public` with `{ "isPublic": true | false }`.
 
 Dashboard URL (always share this with the user):
@@ -350,8 +374,8 @@ https://cloud.fastfold.ai/openmm/results/<workflow_id>?shared=true
 If the run fails or the API behaves unexpectedly, tell the user to contact the FastFold team at [hello@fastfold.ai](mailto:hello@fastfold.ai) and include the `workflow_id`. Specifically:
 
 - Workflow task status is `FAILED` or `STOPPED`.
-- Workflow stays non-terminal past `--timeout` in `wait_for_workflow.py`.
-- Terminal `COMPLETED` but metrics/artifacts never appear within `--metrics-timeout` (exit code 3 from `wait_for_workflow.py`).
+- Workflow stays non-terminal past `--timeout` in `wait_for_workflow`.
+- Terminal `COMPLETED` but metrics/artifacts never appear within `--metrics-timeout` (exit code 3 from `wait_for_workflow`).
 - Any `5xx` response or persistent `4xx` (other than `401 Unauthorized`, which is an API key issue the user must fix themselves).
 - Upload to `/v1/library/{item_id}/upload-files` fails repeatedly.
 

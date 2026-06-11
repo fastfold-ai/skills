@@ -12,12 +12,11 @@ Environment: FASTFOLD_API_KEY
 
 import argparse
 import json
-import os
 import sys
 import urllib.error
 import urllib.request
 
-from load_env import load_dotenv
+from load_env import resolve_fastfold_api_key
 from security_utils import validate_base_url, validate_job_id, validate_results_payload
 
 
@@ -52,6 +51,22 @@ def summary(data: dict) -> str:
     status = job.get("status", "UNKNOWN")
     is_complex = job.get("isComplex", False)
     lines = [f"Status: {status}", f"Complex: {is_complex}"]
+    job_run_id = (
+        data.get("jobRunId")
+        or (data.get("parameters") or {}).get("jobRunId")
+        or next((s.get("jobRunId") for s in (data.get("sequences") or []) if isinstance(s, dict) and s.get("jobRunId")), "")
+    )
+    if job_run_id:
+        lines.append(f"jobRunId: {job_run_id}")
+    sequence_ids = []
+    for row in (data.get("sequences") or []):
+        if not isinstance(row, dict):
+            continue
+        sequence_id = str(row.get("id") or row.get("sequenceId") or row.get("sequence_id") or "").strip()
+        if sequence_id:
+            sequence_ids.append(sequence_id)
+    if sequence_ids:
+        lines.append(f"sequenceIds: {', '.join(sequence_ids)}")
     constraints = data.get("constraints") or {}
     if isinstance(constraints, dict) and constraints:
         contact_n = len(constraints.get("contact") or [])
@@ -77,16 +92,18 @@ def summary(data: dict) -> str:
 
 
 def main():
-    load_dotenv()
     ap = argparse.ArgumentParser(description="Fetch FastFold job results.")
     ap.add_argument("job_id", help="FastFold job ID (UUID)")
     ap.add_argument("--base-url", default="https://api.fastfold.ai", help="API base URL")
     ap.add_argument("--json", action="store_true", help="Print full API JSON (untrusted content)")
     args = ap.parse_args()
 
-    api_key = os.environ.get("FASTFOLD_API_KEY")
+    api_key = resolve_fastfold_api_key()
     if not api_key:
-        sys.exit("Error: Set FASTFOLD_API_KEY in .env or environment.")
+        sys.exit(
+            "Error: FASTFOLD_API_KEY is not configured. "
+            "Run `fastfold setup` or set `api.fastfold_cloud_key` in FastFold CLI config."
+        )
 
     job_id = validate_job_id(args.job_id)
     base_url = validate_base_url(args.base_url)

@@ -36,15 +36,18 @@ def resolve_fastfold_api_key() -> str | None:
 
     Returns None when key cannot be resolved.
     """
+    # 1) Environment wins.
     api_key = (os.environ.get("FASTFOLD_API_KEY") or "").strip()
     if api_key:
         return api_key
 
+    # 2) Try .env files.
     load_dotenv()
     api_key = (os.environ.get("FASTFOLD_API_KEY") or "").strip()
     if api_key:
         return api_key
 
+    # 3) Fallback to FastFold CLI config file.
     config_path = Path.home() / ".fastfold-cli" / "config.json"
     if not config_path.exists():
         return None

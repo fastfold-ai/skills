@@ -20,7 +20,11 @@ from urllib.request import urlopen
 
 from _api import http_json
 from load_env import resolve_fastfold_api_key
-from security_utils import validate_artifact_url, validate_base_url, validate_workflow_id
+from security_utils import (
+    validate_artifact_url,
+    validate_base_url,
+    validate_workflow_id,
+)
 
 
 def _as_number(value: Any) -> float | None:

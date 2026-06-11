@@ -12,13 +12,12 @@ Environment: FASTFOLD_API_KEY
 
 import argparse
 import json
-import os
 import sys
 import time
 import urllib.error
 import urllib.request
 
-from load_env import load_dotenv
+from load_env import resolve_fastfold_api_key
 from security_utils import validate_base_url, validate_job_id, validate_results_payload
 
 
@@ -49,7 +48,6 @@ def get_results(base_url: str, api_key: str, job_id: str) -> dict:
 
 
 def main():
-    load_dotenv()
     ap = argparse.ArgumentParser(description="Wait for FastFold job completion.")
     ap.add_argument("job_id", help="FastFold job ID (UUID)")
     ap.add_argument("--poll-interval", type=float, default=5.0, help="Seconds between polls (default 5)")
@@ -59,20 +57,29 @@ def main():
     ap.add_argument("--quiet", action="store_true", help="Do not print status lines")
     args = ap.parse_args()
 
-    api_key = os.environ.get("FASTFOLD_API_KEY")
+    api_key = resolve_fastfold_api_key()
     if not api_key:
-        sys.exit("Error: Set FASTFOLD_API_KEY in .env or environment.")
+        sys.exit(
+            "Error: FASTFOLD_API_KEY is not configured. "
+            "Run `fastfold setup` or set `api.fastfold_cloud_key` in FastFold CLI config."
+        )
 
     job_id = validate_job_id(args.job_id)
     base_url = validate_base_url(args.base_url)
 
     start = time.time()
     last_status = None
+    same_status_count = 0
     while True:
         data = get_results(base_url, api_key, job_id)
         job = data.get("job", {})
-        status = job.get("status", "UNKNOWN")
-        if not args.quiet:
+        status = str(job.get("status", "UNKNOWN")).upper()
+        if status == last_status:
+            same_status_count += 1
+        else:
+            same_status_count = 0
+            last_status = status
+        if not args.quiet and (same_status_count == 0 or status in ("COMPLETED", "FAILED", "STOPPED")):
             print(f"[FastFold] job {job_id} status: {status}", file=sys.stderr)
         if status == "COMPLETED":
             if args.json:
@@ -84,7 +91,12 @@ def main():
             sys.exit(1)
         if (time.time() - start) > args.timeout:
             sys.exit(2)  # timeout
-        time.sleep(max(0.1, args.poll_interval))
+        sleep_s = max(0.1, args.poll_interval)
+        if same_status_count >= 6:
+            sleep_s = min(20.0, sleep_s * 1.5)
+        if same_status_count >= 12:
+            sleep_s = min(30.0, sleep_s * 2.0)
+        time.sleep(sleep_s)
 
 
 if __name__ == "__main__":

@@ -1,13 +1,22 @@
 # Fastfold AI Skills
 
-A collection of skills for AI agents. Skills are packaged instructions and scripts that extend agent capabilities.
+A collection of skills for AI agents. Skills are packaged instructions and scripts that extend agent capabilities for the FastFold Cloud APIs (folding, protein design, molecular dynamics, reporting).
 
-Skills follow the [Agent Skills](https://agentskills.io/) format.
+Skills follow the [Agent Skills](https://agentskills.io/) format. Each skill is self-contained and portable: its scripts use only the Python standard library and are invoked directly as `python scripts/<name>.py ...` from the skill directory, so they run consistently wherever the skill is installed.
 
 ## Install
 
+Install all skills with the Skills CLI (Node/`npx`):
+
 ```bash
 npx skills add fastfold-ai/skills
+```
+
+Or with the Fastfold Agent CLI (native, no Node required):
+
+```bash
+fastfold skills add fastfold-ai/skills                      # all skills
+fastfold skills add fastfold-ai/skills@skills/fold          # a single skill
 ```
 
 ## Usage
@@ -34,9 +43,11 @@ Skills in this repo live in the **`skills/`** folder.
 |---|---|
 | `fold` | FastFold Jobs API submission, waiting, and result retrieval |
 | `protein_design_boltzgen` | BoltzGen protein design workflow orchestration |
-| `md-openmm-calvados` | CALVADOS + OpenMM molecular dynamics workflows |
-| `md-openmmdl` | OpenMMDL protein-ligand molecular dynamics workflows |
+| `md_openmm_calvados` | CALVADOS + OpenMM molecular dynamics workflows |
+| `md_openmmdl` | OpenMMDL protein-ligand molecular dynamics workflows |
 | `slack_report` | Post markdown reports to Slack and save library copies |
+
+Install a single skill with `fastfold skills add fastfold-ai/skills@skills/<skill>` (or `npx skills add fastfold-ai/skills`).
 
 ### fold
 
@@ -74,7 +85,7 @@ BoltzGen protein design workflow automation (draft -> upsert -> execute -> ranke
 - `workflow_api.py` – create/upload/build/upsert/execute/wait/results
 - `fetch_cif.py` – fetch candidate CIF artifacts
 
-### md-openmm-calvados
+### md_openmm_calvados
 
 CALVADOS + OpenMM workflow automation via the Workflows API (`calvados_openmm_v1`).
 
@@ -83,7 +94,7 @@ CALVADOS + OpenMM workflow automation via the Workflows API (`calvados_openmm_v1
 - Submitting manual PDB + PAE simulation inputs
 - Fetching workflow metrics, artifacts, and extracted frames
 
-### md-openmmdl
+### md_openmmdl
 
 OpenMMDL protein-ligand workflow automation via the Workflows API (`openmmdl_v1`).
 

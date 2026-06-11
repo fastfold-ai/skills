@@ -20,7 +20,7 @@ import sys
 import urllib.error
 import urllib.request
 
-from load_env import load_dotenv
+from load_env import resolve_fastfold_api_key
 from security_utils import (
     validate_artifact_url,
     validate_base_url,
@@ -96,7 +96,6 @@ class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
 
 
 def main():
-    load_dotenv()
     ap = argparse.ArgumentParser(description="Download CIF file(s) for a completed FastFold job.")
     ap.add_argument("job_id", help="FastFold job ID (UUID)")
     ap.add_argument("--out", help="Output CIF path (single file; use for complex or single-sequence)")
@@ -110,9 +109,12 @@ def main():
     )
     args = ap.parse_args()
 
-    api_key = os.environ.get("FASTFOLD_API_KEY")
+    api_key = resolve_fastfold_api_key()
     if not api_key:
-        sys.exit("Error: Set FASTFOLD_API_KEY in .env or environment.")
+        sys.exit(
+            "Error: FASTFOLD_API_KEY is not configured. "
+            "Run `fastfold setup` or set `api.fastfold_cloud_key` in FastFold CLI config."
+        )
 
     job_id = validate_job_id(args.job_id)
     base_url = validate_base_url(args.base_url)

@@ -2,9 +2,13 @@
 """
 Wait for a fold job, then wait for linked Evolla webhook answers.
 
+This avoids ad-hoc polling loops and extra shell commands.
+
 Usage:
-    python scripts/wait_for_evolla_linked.py JOB_ID --json
-    python scripts/wait_for_evolla_linked.py JOB_ID --evolla-timeout 300 --max-not-found-polls 8
+    wait_for_evolla_linked.py JOB_ID [--poll-interval SEC] [--evolla-poll-interval SEC]
+    wait_for_evolla_linked.py JOB_ID --json
+
+Environment: FASTFOLD_API_KEY (or FastFold CLI config via load_env helper)
 """
 
 from __future__ import annotations
@@ -20,8 +24,10 @@ import urllib.request
 from load_env import resolve_fastfold_api_key
 from security_utils import validate_base_url, validate_job_id, validate_results_payload
 
+
 FOLD_TERMINAL_OK = {"COMPLETED"}
 FOLD_TERMINAL_ERR = {"FAILED", "STOPPED"}
+EVOLLA_TERMINAL = {"COMPLETED", "FAILED", "STOPPED"}
 EVOLLA_TERMINAL_ERR = {"FAILED", "STOPPED"}
 
 
@@ -76,22 +82,27 @@ def extract_job_run_id(results: dict) -> str:
 def extract_sequence_ids(results: dict) -> list[str]:
     seen: set[str] = set()
     out: list[str] = []
+
     sequences = results.get("sequences") or []
     if isinstance(sequences, list):
         for row in sequences:
             if not isinstance(row, dict):
                 continue
             sequence_id = str(row.get("id") or row.get("sequenceId") or row.get("sequence_id") or "").strip()
-            if sequence_id and sequence_id not in seen:
-                seen.add(sequence_id)
-                out.append(sequence_id)
+            if not sequence_id or sequence_id in seen:
+                continue
+            seen.add(sequence_id)
+            out.append(sequence_id)
+
     sequence_ids_top = results.get("sequencesIds") or []
     if isinstance(sequence_ids_top, list):
         for raw in sequence_ids_top:
             sequence_id = str(raw or "").strip()
-            if sequence_id and sequence_id not in seen:
-                seen.add(sequence_id)
-                out.append(sequence_id)
+            if not sequence_id or sequence_id in seen:
+                continue
+            seen.add(sequence_id)
+            out.append(sequence_id)
+
     return out
 
 
@@ -107,7 +118,14 @@ def _sequence_rank(sequence_type: str) -> int:
 
 
 def extract_preferred_sequence_ids(results: dict) -> list[str]:
+    """
+    Choose one representative sequence to monitor by default.
+
+    Backend webhook automation currently creates a single Evolla workflow per fold run
+    (typically protein-first), so waiting on every sequence can hang on ligand-only rows.
+    """
     candidates: list[tuple[str, int, int]] = []
+
     sequences = results.get("sequences") or []
     if isinstance(sequences, list):
         for idx, row in enumerate(sequences):
@@ -118,9 +136,13 @@ def extract_preferred_sequence_ids(results: dict) -> list[str]:
                 continue
             sequence_type = str(row.get("sequenceType") or row.get("sequence_type") or "").strip()
             candidates.append((sequence_id, _sequence_rank(sequence_type), idx))
+
     if not candidates:
         sequence_ids = extract_sequence_ids(results)
-        return [sequence_ids[0]] if sequence_ids else []
+        if sequence_ids:
+            return [sequence_ids[0]]
+        return []
+
     candidates.sort(key=lambda item: (item[1], item[2]))
     return [candidates[0][0]]
 
@@ -168,10 +190,20 @@ def _sleep_with_backoff(base_interval: float, same_status_count: int, max_interv
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Wait for fold completion and linked Evolla webhook answers.")
+    ap = argparse.ArgumentParser(
+        description="Wait for fold completion and linked Evolla webhook answers."
+    )
     ap.add_argument("job_id", help="FastFold job ID (UUID)")
-    ap.add_argument("--job-run-id", help="Optional known jobRunId from fold results.")
-    ap.add_argument("--sequence-id", action="append", default=[], help="Optional sequence UUID to monitor.")
+    ap.add_argument(
+        "--job-run-id",
+        help="Optional known jobRunId. If omitted, resolved from /v1/jobs/{jobId}/results.",
+    )
+    ap.add_argument(
+        "--sequence-id",
+        action="append",
+        default=[],
+        help="Optional sequence UUID to monitor (repeat for multiple).",
+    )
     ap.add_argument(
         "--all-sequences",
         action="store_true",
@@ -195,7 +227,10 @@ def main() -> None:
         "--max-not-found-polls",
         type=int,
         default=8,
-        help="Mark a sequence as NOT_FOUND after N linked-history polls with no workflow row (default 8).",
+        help=(
+            "Mark a sequence as NOT_FOUND after N linked-history polls "
+            "with no workflow row (default 8)."
+        ),
     )
     ap.add_argument("--base-url", default="https://api.fastfold.ai", help="API base URL")
     ap.add_argument("--json", action="store_true", help="Print combined fold+evolla JSON to stdout")
@@ -204,15 +239,21 @@ def main() -> None:
 
     api_key = resolve_fastfold_api_key()
     if not api_key:
-        sys.exit("Error: FASTFOLD_API_KEY is not configured. Set it in env/.env or FastFold CLI config.")
+        sys.exit(
+            "Error: FASTFOLD_API_KEY is not configured. "
+            "Run `fastfold setup` or set `api.fastfold_cloud_key` in FastFold CLI config."
+        )
 
     job_id = validate_job_id(args.job_id)
     base_url = validate_base_url(args.base_url)
+
     manual_job_run_id = str(args.job_run_id or "").strip()
     if manual_job_run_id:
         manual_job_run_id = validate_job_id(manual_job_run_id)
+
     requested_sequence_ids = [validate_job_id(str(v)) for v in (args.sequence_id or []) if str(v).strip()]
 
+    # Step 1: wait for fold completion
     fold_start = time.time()
     fold_results: dict = {}
     last_fold_status = ""
@@ -227,6 +268,7 @@ def main() -> None:
             last_fold_status = status
             if not args.quiet:
                 print(f"[FastFold] job {job_id} status: {status}", file=sys.stderr)
+
         if status in FOLD_TERMINAL_OK:
             break
         if status in FOLD_TERMINAL_ERR:
@@ -237,8 +279,10 @@ def main() -> None:
             if args.json:
                 print(json.dumps({"fold": fold_results, "evolla": {"items": [], "timedOut": True}}, indent=2))
             sys.exit(2)
+
         _sleep_with_backoff(args.poll_interval, same_fold_status_count, max_interval=20.0)
 
+    # Step 2: resolve identifiers needed for linked Evolla history
     job_run_id = manual_job_run_id or extract_job_run_id(fold_results)
     if not job_run_id:
         if args.json:
@@ -278,6 +322,7 @@ def main() -> None:
             print("[FastFold] No sequence IDs found; skipping linked Evolla polling.", file=sys.stderr)
         sys.exit(0)
 
+    # Step 3: poll linked Evolla history per sequence
     state_by_sequence: dict[str, dict] = {}
     for sequence_id in sequence_ids:
         state_by_sequence[sequence_id] = {
@@ -306,7 +351,14 @@ def main() -> None:
 
         for sequence_id in remaining:
             st = state_by_sequence[sequence_id]
-            item = get_latest_evolla_item(base_url, api_key, job_id, job_run_id, sequence_id)
+            item = get_latest_evolla_item(
+                base_url=base_url,
+                api_key=api_key,
+                job_id=job_id,
+                job_run_id=job_run_id,
+                sequence_id=sequence_id,
+            )
+
             next_status = str(item.get("workflowStatus") or "PENDING").upper()
             next_answer = str(item.get("lastAnswer") or "").strip()
             next_workflow_id = str(item.get("workflowId") or "").strip()
@@ -323,7 +375,10 @@ def main() -> None:
             answer_changed = bool(next_answer) and next_answer != str(st.get("lastAnswer") or "")
             if not args.quiet and (status_changed or answer_changed):
                 suffix = " (answer ready)" if next_answer else ""
-                print(f"[FastFold] Evolla sequence {sequence_id} status: {next_status}{suffix}", file=sys.stderr)
+                print(
+                    f"[FastFold] Evolla sequence {sequence_id} status: {next_status}{suffix}",
+                    file=sys.stderr,
+                )
 
             st["workflowStatus"] = next_status
             st["workflowId"] = next_workflow_id
@@ -343,16 +398,21 @@ def main() -> None:
             if next_answer:
                 st["done"] = True
                 continue
+
             if next_status in EVOLLA_TERMINAL_ERR:
                 st["done"] = True
                 continue
+
             if next_status == "COMPLETED":
+                # Avoid endless polling if workflow is terminal but answer field stays empty.
                 st["completedWithoutAnswerPolls"] = int(st.get("completedWithoutAnswerPolls") or 0) + 1
                 if int(st["completedWithoutAnswerPolls"]) >= 2:
                     st["done"] = True
                 continue
+
             st["completedWithoutAnswerPolls"] = 0
 
+        # Use a small adaptive backoff based on the noisiest sequence.
         max_same = max(int(state_by_sequence[sid].get("sameStatusCount") or 0) for sid in remaining)
         _sleep_with_backoff(args.evolla_poll_interval, max_same, max_interval=15.0)
 
@@ -397,15 +457,20 @@ def main() -> None:
             if answer:
                 print(f"[Evolla] {sid} answer: {answer}", file=sys.stderr)
             elif status == "NOT_FOUND":
-                print(f"[Evolla] {sid} status: NOT_FOUND (no linked workflow row found)", file=sys.stderr)
+                print(
+                    f"[Evolla] {sid} status: NOT_FOUND (no linked workflow row found)",
+                    file=sys.stderr,
+                )
             else:
                 print(f"[Evolla] {sid} status: {status}", file=sys.stderr)
 
     if timed_out:
         sys.exit(2)
+
     has_terminal_error = any(str(i.get("workflowStatus") or "").upper() in EVOLLA_TERMINAL_ERR for i in items)
     if has_terminal_error:
         sys.exit(1)
+
     sys.exit(0)
 
 

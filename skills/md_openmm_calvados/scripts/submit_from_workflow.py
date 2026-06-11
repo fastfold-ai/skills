@@ -149,8 +149,8 @@ def main() -> None:
             "Error: could not fetch the reference OpenMM workflow. "
             "You may not have access to that workflow, or it may no longer exist. "
             "Ask the workflow owner to share the workflow/files with you, or provide the input PDB + PAE files directly. "
-            "If you only know the UniProt accession, use fetch_uniprot.py and then submit_manual_af_pae.py. "
-            "If the source is a FastFold fold job, use submit_from_fold_job.py instead."
+            "If you only know the UniProt accession, use scripts/fetch_uniprot.py and then scripts/submit_manual_af_pae.py. "
+            "If the source is a FastFold fold job, use scripts/submit_from_fold_job.py instead."
             + (f"\nDetails: {detail}" if detail else "")
         )
     workflow_input = _clone_dict(source.get("input_payload"))

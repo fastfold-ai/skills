@@ -4,11 +4,11 @@ This file provides guidance to AI coding agents (Claude, Cursor, Copilot, etc.) 
 
 ## Repository Overview
 
-A collection of agent skills for working with the **FastFold Jobs API** (protein folding). Skills are packaged instructions and scripts that extend the agent’s capabilities—e.g. creating fold jobs, waiting for completion, fetching CIF/PDB results, metrics, and viewer links.
+A collection of agent skills for working with the **FastFold Cloud APIs** — the Jobs API (protein folding) and the Workflows API (BoltzGen protein design, CALVADOS/OpenMM and OpenMMDL molecular dynamics), plus reporting. Skills are packaged instructions and scripts that extend the agent’s capabilities—e.g. creating fold jobs, waiting for completion, fetching CIF/PDB results, metrics, and viewer links.
 
 - Skills live in the **`skills/`** folder.
-- Each skill is self-contained: `SKILL.md`, optional `scripts/`, `references/`, and `assets/`.
-- Install for users: `npx skills add fastfold-ai/skills`.
+- Each skill is self-contained and **portable**: `SKILL.md`, optional `scripts/`, `references/`, and `assets/`. Scripts use only the Python standard library and are invoked directly as `python scripts/<name>.py ...` from the skill directory, so they run consistently wherever the skill is installed.
+- Install for users: `npx skills add fastfold-ai/skills` or `fastfold skills add fastfold-ai/skills` (native, no Node).
 
 ## Creating a New Skill
 
@@ -16,7 +16,7 @@ A collection of agent skills for working with the **FastFold Jobs API** (protein
 
 ```
 skills/
-  {skill-name}/              # kebab-case directory name
+  {skill_name}/              # snake_case directory name (matches frontmatter `name`)
     SKILL.md                 # Required: skill definition and instructions
     scripts/                 # Optional: executable helpers (Python preferred)
       {script-name}.py
@@ -28,9 +28,9 @@ skills/
 
 ### Naming Conventions
 
-- **Skill directory:** `kebab-case` (e.g. `fold`, `my-api-skill`)
+- **Skill directory:** `snake_case` (e.g. `fold`, `protein_design_boltzgen`, `md_openmm_calvados`). The frontmatter `name:` should match the directory name so the install source (`fastfold-ai/skills@skills/<name>`) and the skill name stay consistent.
 - **SKILL.md:** Always this exact filename (uppercase, `.md`)
-- **Scripts:** `snake_case.py` or `kebab-case.sh` (e.g. `wait_for_completion.py`, `fetch_results.py`)
+- **Scripts:** `snake_case.py` (e.g. `wait_for_completion.py`, `fetch_results.py`)
 - **References:** Place API schemas (e.g. OpenAPI YAML) and long docs in `references/` so SKILL.md stays short
 
 ### SKILL.md Format

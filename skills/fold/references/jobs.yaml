@@ -928,8 +928,8 @@ components:
     ConstraintsInput:
       type: object
       description: |
-        Optional pocket and bond constraints in the **job JSON**. **Boltz**, **Boltz-2**, and **IntelliFold**
-        apply these during inference (YAML). **Chai-1** maps `contact`, `pocket`, and `bond` into native restraints
+        Optional pocket and bond constraints in the **job JSON**. **Boltz**, **Boltz-2**, and **IntelliFold** apply
+        these during inference. **Chai-1** maps `contact`, `pocket`, and `bond` into native restraints
         CSV rows. **OpenFold 3** does not use `constraints` in its inference input
         (only sequences and chain-level modifications); values may still be stored on the job for
         the UI or replay.

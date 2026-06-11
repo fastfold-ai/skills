@@ -35,7 +35,7 @@ The endpoint posts to the configured `agent_cli_report` Slack channel and stores
 
 1. Export or prepare markdown report content.
 2. Call the helper script:
-   - `python -m ct.skills.slack_report.scripts.send_agent_cli_report --markdown-file <path>`
+   - `python scripts/send_agent_cli_report.py --markdown-file <path>`
    - Do not replace this with ad-hoc Python `requests` code.
 3. If response has `ok: false` and `needs_slack_setup: true`, tell user:
    - Configure Slack at [https://cloud.fastfold.ai/integrations/slack](https://cloud.fastfold.ai/integrations/slack)

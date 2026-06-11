@@ -16,7 +16,6 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any
 
 from _api import http_json, upload_library_file_and_get_ref
 from load_env import resolve_fastfold_api_key
@@ -51,16 +50,6 @@ def _validate_file(path_str: str, *, label: str) -> Path:
     if not path.is_file():
         sys.exit(f"Error: {label} file not found: {path}")
     return path
-
-
-def _parse_json_object(raw: str, *, field_name: str) -> dict[str, Any]:
-    try:
-        value = json.loads(raw)
-    except Exception as exc:
-        raise argparse.ArgumentTypeError(f"{field_name} must be valid JSON: {exc}") from exc
-    if not isinstance(value, dict):
-        raise argparse.ArgumentTypeError(f"{field_name} must be a JSON object.")
-    return value
 
 
 def main() -> None:
@@ -99,11 +88,6 @@ def main() -> None:
     parser.add_argument("--box-length", type=float, default=20, help="Box length in nm.")
     parser.add_argument("--topology", default="center", help="Topology mode (center/random/grid/slab).")
     parser.add_argument(
-        "--ext-force-expr",
-        default=None,
-        help="External force expression; when set, enables workflow_input.ext_force and sets ext_force_expr.",
-    )
-    parser.add_argument(
         "--box-eq",
         action=argparse.BooleanOptionalAction,
         default=None,
@@ -139,23 +123,6 @@ def main() -> None:
         action=argparse.BooleanOptionalAction,
         default=None,
         help="Enable/disable workflow_input.component_defaults.charged_histidine.",
-    )
-    parser.add_argument(
-        "--nmol",
-        type=int,
-        default=None,
-        help="Optional workflow_input.component_defaults.nmol override.",
-    )
-    parser.add_argument(
-        "--molecule-type",
-        default=None,
-        help="Optional workflow_input.component_defaults.molecule_type override (e.g., protein/rna).",
-    )
-    parser.add_argument(
-        "--component-defaults-json",
-        type=lambda raw: _parse_json_object(raw, field_name="--component-defaults-json"),
-        default=None,
-        help='JSON object merged into workflow_input.component_defaults, e.g. \'{"rna_kb1":1400}\'',
     )
     parser.add_argument("--public", action="store_true", help="Make the workflow public.")
     parser.add_argument("--dry-run", action="store_true", help="Print submit body and exit without API calls.")
@@ -204,8 +171,6 @@ def main() -> None:
                 "sim_length_ns": args.sim_length_ns,
                 "box_length": args.box_length,
                 "topol": args.topology,
-                "ext_force": bool(args.ext_force_expr),
-                "ext_force_expr": str(args.ext_force_expr or ""),
                 "files": {
                     "residues": "<library-ref>",
                     "fasta" if fasta_path else "pdb": "<library-ref>",
@@ -309,9 +274,6 @@ def main() -> None:
             "file_bindings": file_bindings_payload,
         },
     }
-    if args.ext_force_expr:
-        workflow_input["ext_force"] = True
-        workflow_input["ext_force_expr"] = str(args.ext_force_expr).strip()
     if args.component_name:
         workflow_input["component_name"] = str(args.component_name).strip()
     if args.public:
@@ -333,18 +295,10 @@ def main() -> None:
         component_defaults_payload["charged_C_terminal_carboxyl"] = bool(args.charged_c_terminal_carboxyl)
     if args.charged_histidine is not None:
         component_defaults_payload["charged_histidine"] = bool(args.charged_histidine)
-    if args.nmol is not None:
-        if args.nmol <= 0:
-            sys.exit("Error: --nmol must be a positive integer.")
-        component_defaults_payload["nmol"] = int(args.nmol)
-    if args.molecule_type:
-        component_defaults_payload["molecule_type"] = str(args.molecule_type).strip()
     if args.charged_n_terminal_amine is not None or args.charged_c_terminal_carboxyl is not None:
         charged_n = bool(args.charged_n_terminal_amine) if args.charged_n_terminal_amine is not None else True
         charged_c = bool(args.charged_c_terminal_carboxyl) if args.charged_c_terminal_carboxyl is not None else True
         component_defaults_payload["charge_termini"] = _charge_termini_from_flags(charged_n, charged_c)
-    if args.component_defaults_json:
-        component_defaults_payload.update(args.component_defaults_json)
     if component_defaults_payload:
         workflow_input["component_defaults"] = component_defaults_payload
 

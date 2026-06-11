@@ -16,8 +16,8 @@ Supports two modes:
 Full payload allows: multiple sequences (proteinChain, rnaSequence, dnaSequence, ligandSequence),
 params (modelName: boltz-2, openfold3, chai1, intellifold, monomer, multimer, esm1b, boltz, simplefold_100M ... simplefold_3B;
 relaxPrediction, recyclingSteps, samplingSteps, diffusionSample, numModelSeeds, numDiffnSamples, numTrunkSamples, etc.),
-constraints (contact, pocket, bond, webhooks),
-isPublic, and optional "from" (library ID). See references/jobs.yaml for schema and examples.
+constraints (contact, pocket, bond, webhooks), isPublic, and optional "from" (library ID). See references/jobs.yaml for
+schema and examples.
 
 Webhook notes: `constraints.webhooks` supports nested webhook configs:
 - Evolla: `webhooks.evolla.enabled` (bool) + optional `webhooks.evolla.initial_question` (string)
@@ -34,7 +34,6 @@ import sys
 import urllib.error
 import urllib.request
 
-# Load .env from project root so FASTFOLD_API_KEY can be set there
 from load_env import resolve_fastfold_api_key
 from security_utils import validate_base_url, validate_results_payload
 
@@ -150,7 +149,7 @@ def main():
     if not api_key:
         sys.exit(
             "Error: FASTFOLD_API_KEY is not configured. "
-            "Set it in env/.env or FastFold CLI config."
+            "Run `fastfold setup` or set `api.fastfold_cloud_key` in FastFold CLI config."
         )
     base_url = validate_base_url(args.base_url)
 

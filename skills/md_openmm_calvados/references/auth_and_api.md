@@ -31,6 +31,7 @@ Never paste keys into chat or command arguments.
 | GET | `/v1/workflows/status/{workflow_id}` | Poll workflow + task status |
 | GET | `/v1/workflows/task-results/{workflow_id}` | Read task-level output summary (authed) |
 | GET | `/v1/workflows/public/{workflow_id}` | Read full public payload including `result_raw_json` (no auth; requires `isPublic: true`) |
+| POST | `/v1/workflows/openmm/{workflow_id}/extract-frame` | Extract a trajectory frame as a PDB file |
 | PATCH | `/v1/workflows/{workflow_id}/public` | Toggle public/private after creation. Body: `{ "isPublic": true \| false }` |
 
 ## Terminal states
@@ -43,6 +44,46 @@ Workflow and task `status` values are the same set:
 Trust `artifacts`, `metrics`, `metricsJson` only when task status is `COMPLETED`.
 These fields can populate a short time after the first terminal status;
 `wait_for_workflow.py` handles that settle window.
+
+## Extract frame endpoint
+
+Use after a completed OpenMM workflow has trajectory artifacts.
+
+```
+POST /v1/workflows/openmm/<workflow_id>/extract-frame
+```
+
+Body:
+
+```json
+{
+  "timeNs": 5.0,
+  "selection": "protein or resname LIG",
+  "outputFilename": "<workflow-name>_extracted_frame.pdb",
+  "dtInPs": 0
+}
+```
+
+Response:
+
+```json
+{
+  "workflowId": "<uuid>",
+  "taskId": "<uuid>",
+  "pdbUrl": "https://...",
+  "path": "analysis/extracted_frames/<file>.pdb",
+  "frameIndex": 500,
+  "requestedTimeNs": 5.0,
+  "actualTimeNs": 5.0,
+  "atomCount": 1234
+}
+```
+
+CLI command:
+
+```bash
+python scripts/extract_frame.py <workflow_id> --time-ns 5.0 [--selection "protein or resname LIG"] [--dt-in-ps 0] [--download ./frame.pdb] [--json]
+```
 
 ## isPublic vs auth
 

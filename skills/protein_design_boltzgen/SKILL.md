@@ -52,15 +52,44 @@ If no key is available:
 
 ## Scripts
 
-Run from this directory:
+This skill bundles self-contained scripts under its own `scripts/` directory. Run them with `python scripts/<name>.py ...` from the skill directory (or pass the full path). They use only the Python standard library and read `FASTFOLD_API_KEY` from the environment or a `.env` file.
+Do **not** hunt for files with `find`/`locate`, and do **not** `cd` into package directories.
 
-```bash
-# In fastfold-agent-cli repo:
-cd src/ct/skills/protein_design_boltzgen
+Primary scripts:
 
-# In fastfold-skills repo:
-cd skills/protein_design_boltzgen
-```
+- `python scripts/workflow_api.py` — workflow create/build/upload/execute/results
+- `python scripts/fetch_cif.py` — fetch input CIF files
+
+### Critical execution guardrail (non-negotiable)
+
+If `python scripts/workflow_api.py` or `python scripts/fetch_cif.py` returns an error:
+1. Report the exact command + concise error.
+2. If `FASTFOLD_API_KEY` is unset, set it in the environment or a `.env` file (create one at https://cloud.fastfold.ai/api-keys).
+3. **Stop**. Do not attempt fallback discovery (`find`, `locate`, `ls` package trees, `python -c`).
+
+### Background execution protocol (required)
+
+When users ask to run BoltzGen "in background", use this split:
+
+1. Run draft/submit/execute in foreground.
+2. Capture and print `workflow_id` immediately.
+3. Only background the long wait/log watch step.
+4. Fetch results using the same preserved `workflow_id`.
+
+Non-negotiable rules:
+
+- Never background create/submit/execute steps that produce the canonical ID.
+- Never ask the user to recover `workflow_id` for an agent-initiated run.
+- Never use filesystem hunting for ID recovery (`find`, `locate`, `ls /tmp`, shell history grep).
+- If ID capture failed due command error, rerun submit in foreground and return the new `workflow_id`.
+
+### Fast path for "show examples"
+
+For prompts like "Show me Boltzgen protein design examples":
+1. Run `python scripts/workflow_api.py example-files --list`.
+2. Present that output directly.
+3. Optionally run one preset resolution command (`--preset ... --json`) if user asks for details.
+4. Do not scan directories unless the user explicitly requests file-level inspection.
 
 - Create draft workflow:
   - explicit name:
@@ -95,12 +124,12 @@ cd skills/protein_design_boltzgen
 - Execute:
   - `python scripts/workflow_api.py execute`
 - Wait:
-  - `python scripts/workflow_api.py wait --poll-seconds 10 --timeout-seconds 7200`
+  - `python scripts/workflow_api.py wait --poll-seconds 30 --timeout-seconds 7200`
 - Logs (single snapshot + interpretation):
   - `python scripts/workflow_api.py logs`
   - `python scripts/workflow_api.py logs --tail-lines 200`
 - Live logs while running:
-  - `python scripts/workflow_api.py logs --watch --poll-seconds 10 --timeout-seconds 1800`
+  - `python scripts/workflow_api.py logs --watch --poll-seconds 30 --timeout-seconds 1800`
 - Logs JSON payload:
   - `python scripts/workflow_api.py logs --json`
 - Get candidates/metrics + links:
