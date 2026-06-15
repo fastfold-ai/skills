@@ -108,7 +108,15 @@ After completion, always provide:
 - Optional Py2DMol viewer:
   - `https://cloud.fastfold.ai/py2dmol/new?from=openmm_workflow&workflow_id=<workflow_id>`
 
-Keep URLs as raw URLs (no markdown link titles) so users can click/copy easily.
+Prefer concise markdown link labels in agent responses (for example `[Dashboard](...)`, `[Py2DMol Viewer](...)`, `[RMSD CSV](...)`) instead of dumping very long raw URLs.
+Use this standard label template whenever available:
+
+- `[Dashboard](...)`
+- `[Public Share](...)` (only if public)
+- `[Deep Analysis](...)`
+- `[Py2DMol Viewer](...)`
+- `[Extracted Frame PDB](...)` for extract-frame output
+- Artifact links by filename (for example `[rmsd.csv](...)`, `[metrics.json](...)`)
 
 ## Defaults Guidance (when omitted)
 

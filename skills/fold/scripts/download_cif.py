@@ -10,7 +10,7 @@ Usage:
 - Non-complex: --dir ./out (writes output_0.cif, output_1.cif, ...).
 
 Requires: Python standard library only (no external dependencies)
-Environment: FASTFOLD_API_KEY
+Environment: FASTFOLD_API_KEY (optional for public jobs; required for private jobs)
 """
 
 import argparse
@@ -29,9 +29,11 @@ from security_utils import (
 )
 
 
-def get_results(base_url: str, api_key: str, job_id: str) -> dict:
+def get_results(base_url: str, api_key: str | None, job_id: str) -> dict:
     url = f"{base_url.rstrip('/')}/v1/jobs/{job_id}/results"
-    headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
+    headers = {"Accept": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
     req = urllib.request.Request(url=url, headers=headers, method="GET")
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
@@ -44,7 +46,9 @@ def get_results(base_url: str, api_key: str, job_id: str) -> dict:
         sys.exit(f"Error: Network error while fetching results: {e.reason}")
 
     if status == 401:
-        sys.exit("Error: Unauthorized. Check FASTFOLD_API_KEY.")
+        if api_key:
+            sys.exit("Error: Unauthorized. Check FASTFOLD_API_KEY.")
+        sys.exit("Error: Unauthorized. This job is likely private; set FASTFOLD_API_KEY.")
     if status == 404:
         sys.exit("Error: Job not found.")
     if status >= 400:
@@ -110,11 +114,6 @@ def main():
     args = ap.parse_args()
 
     api_key = resolve_fastfold_api_key()
-    if not api_key:
-        sys.exit(
-            "Error: FASTFOLD_API_KEY is not configured. "
-            "Run `fastfold setup` or set `api.fastfold_cloud_key` in FastFold CLI config."
-        )
 
     job_id = validate_job_id(args.job_id)
     base_url = validate_base_url(args.base_url)

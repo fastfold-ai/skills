@@ -300,6 +300,27 @@ paths:
                       evolla:
                         enabled: true
                         initial_question: "What is the function of this protein?"
+              boltz2WithOpenMMWebhook:
+                summary: Boltz-2 job with OpenMM linkage webhook
+                value:
+                  name: "Boltz-2 with OpenMM webhook"
+                  sequences:
+                    - proteinChain:
+                        sequence: "MGLSDGEWQLVLNVWGKVEADIPGHGQEVLIRLFKGHPETLERFDKFKHLKSEDEMKASEDLKKHGATVLTALGGILKKKGHHEAEIKPLAQSHATKHKIPVKYLEFISECIIQVLQSKHPGDFGADAQRAMNKALELFRKDMASNYKELGFQG"
+                        chain_id: "A"
+                  params:
+                    modelName: "boltz-2"
+                  constraints:
+                    webhooks:
+                      openmm:
+                        enabled: true
+                        preset: "single_af_go"
+                        residue_profile: "calvados3"
+                        temp: 293.15
+                        ionic: 0.15
+                        pH: 7.5
+                        step_size_ns: 0.01
+                        sim_length_ns: 0.2
       responses:
         '200':
           description: Job created successfully
@@ -958,12 +979,15 @@ components:
           description: |
             Optional post-completion automation metadata.
 
-            Current webhook catalog has **one option** (Evolla auto-chat). The `constraints.webhooks`
+            Current webhook catalog supports Evolla and OpenMM linkage. The `constraints.webhooks`
             object is intentionally extensible so additional webhook options can be added in future releases.
 
             Current supported fields:
             - `evolla.enabled` (boolean): when true, trigger linked Evolla chat after fold completion.
             - `evolla.initial_question` (string): initial Evolla question.
+            - `openmm.enabled` (boolean): when true, trigger linked OpenMM workflow after fold completion.
+            - `openmm.*` (object): optional OpenMM input overrides (e.g. `preset`, `residue_profile`,
+              `temp`, `ionic`, `pH`, `step_size_ns`, `sim_length_ns`, `box_mode`, `box_length`).
           additionalProperties: true
           properties:
             evolla:
@@ -982,6 +1006,18 @@ components:
                   nullable: true
                   description: |
                     Optional initial question passed to Evolla.
+            openmm:
+              type: object
+              nullable: true
+              description: |
+                OpenMM webhook configuration. Use `enabled: true` to start linked OpenMM
+                workflow after fold completion. Additional override fields are accepted.
+              additionalProperties: true
+              properties:
+                enabled:
+                  type: boolean
+                  default: false
+                  description: Enable/disable OpenMM linkage webhook.
 
     PocketItemInput:
       type: object

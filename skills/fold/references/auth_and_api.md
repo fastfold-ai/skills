@@ -15,7 +15,11 @@ Authorization: Bearer <your-api-key>
 ```
 
 - **Environment variable (recommended):** `export FASTFOLD_API_KEY="sk-..."`
-- Scripts in this skill use `FASTFOLD_API_KEY` from local `.env`/environment. Do not pass keys through chat or command history.
+- Script key resolution order in this skill:
+  1. `FASTFOLD_API_KEY` in environment
+  2. local `.env` (current/parent directories)
+  3. `~/.fastfold-cli/config.json` (`api.fastfold_cloud_key`)
+- Do not pass keys through chat or command history.
 
 ## Base URL
 
@@ -29,6 +33,10 @@ Authorization: Bearer <your-api-key>
 | POST `/v1/jobs` (Create Job) | Yes |
 | GET `/v1/jobs/{jobId}/results` | Only if job is private; public jobs can be fetched without auth |
 | PATCH `/v1/jobs/{jobId}/public` | Yes (owner only) |
+
+Helper behavior:
+- Fold helper scripts call results endpoints with Bearer auth when a key is available.
+- If no key is resolved, they still attempt public-result reads and return a clear private-job auth error on `401`.
 
 ## Quota Limits
 

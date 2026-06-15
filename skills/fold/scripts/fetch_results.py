@@ -7,7 +7,7 @@ Usage:
     fetch_results.py JOB_ID --json   # print full API JSON (untrusted content)
 
 Requires: Python standard library only (no external dependencies)
-Environment: FASTFOLD_API_KEY
+Environment: FASTFOLD_API_KEY (optional for public jobs; required for private jobs)
 """
 
 import argparse
@@ -20,9 +20,11 @@ from load_env import resolve_fastfold_api_key
 from security_utils import validate_base_url, validate_job_id, validate_results_payload
 
 
-def get_results(base_url: str, api_key: str, job_id: str) -> dict:
+def get_results(base_url: str, api_key: str | None, job_id: str) -> dict:
     url = f"{base_url.rstrip('/')}/v1/jobs/{job_id}/results"
-    headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
+    headers = {"Accept": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
     req = urllib.request.Request(url=url, headers=headers, method="GET")
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
@@ -35,7 +37,9 @@ def get_results(base_url: str, api_key: str, job_id: str) -> dict:
         sys.exit(f"Error: Network error while fetching results: {e.reason}")
 
     if status == 401:
-        sys.exit("Error: Unauthorized. Check FASTFOLD_API_KEY.")
+        if api_key:
+            sys.exit("Error: Unauthorized. Check FASTFOLD_API_KEY.")
+        sys.exit("Error: Unauthorized. This job is likely private; set FASTFOLD_API_KEY.")
     if status == 404:
         sys.exit("Error: Job not found.")
     if status >= 400:
@@ -47,26 +51,45 @@ def get_results(base_url: str, api_key: str, job_id: str) -> dict:
 
 
 def summary(data: dict) -> str:
+    def _prediction_lines(pp: dict, prefix: str = "") -> list[str]:
+        lines_out: list[str] = []
+        scalar_fields = [
+            "cif_url",
+            "pdb_url",
+            "msa_coverage_plot_url",
+            "pae_plot_url",
+            "plddt_plot_url",
+            "metrics_json_url",
+            "config_json_url",
+            "citations_bibtex_url",
+            "plots_url",
+            "meanPLLDT",
+            "ptm_score",
+            "iptm_score",
+            "max_pae_score",
+        ]
+        for field in scalar_fields:
+            value = pp.get(field)
+            if value is None or value == "":
+                continue
+            lines_out.append(f"{prefix}{field}: {value}")
+
+        affinity = pp.get("affinity_result_raw_json")
+        if isinstance(affinity, dict) and affinity:
+            keys = sorted(str(k) for k in affinity.keys())
+            preview = ", ".join(keys[:12])
+            if len(keys) > 12:
+                preview = f"{preview}, ..."
+            lines_out.append(f"{prefix}affinity_result_raw_json: present")
+            lines_out.append(f"{prefix}affinity_result_raw_json_keys: {preview}")
+        elif affinity not in (None, "", {}):
+            lines_out.append(f"{prefix}affinity_result_raw_json: {affinity}")
+        return lines_out
+
     job = data.get("job", {})
     status = job.get("status", "UNKNOWN")
     is_complex = job.get("isComplex", False)
     lines = [f"Status: {status}", f"Complex: {is_complex}"]
-    job_run_id = (
-        data.get("jobRunId")
-        or (data.get("parameters") or {}).get("jobRunId")
-        or next((s.get("jobRunId") for s in (data.get("sequences") or []) if isinstance(s, dict) and s.get("jobRunId")), "")
-    )
-    if job_run_id:
-        lines.append(f"jobRunId: {job_run_id}")
-    sequence_ids = []
-    for row in (data.get("sequences") or []):
-        if not isinstance(row, dict):
-            continue
-        sequence_id = str(row.get("id") or row.get("sequenceId") or row.get("sequence_id") or "").strip()
-        if sequence_id:
-            sequence_ids.append(sequence_id)
-    if sequence_ids:
-        lines.append(f"sequenceIds: {', '.join(sequence_ids)}")
     constraints = data.get("constraints") or {}
     if isinstance(constraints, dict) and constraints:
         contact_n = len(constraints.get("contact") or [])
@@ -75,19 +98,18 @@ def summary(data: dict) -> str:
         lines.append(f"Constraints: contact={contact_n}, pocket={pocket_n}, bond={bond_n}")
     if status != "COMPLETED":
         return "\n".join(lines)
-    params = data.get("parameters", {})
     sequences = data.get("sequences", [])
     pred = data.get("predictionPayload")
     if is_complex and pred:
-        lines.append(f"cif_url: {pred.get('cif_url') or '(none)'}")
-        lines.append(f"meanPLLDT: {pred.get('meanPLLDT')}")
-        lines.append(f"ptm_score: {pred.get('ptm_score')}")
-        lines.append(f"iptm_score: {pred.get('iptm_score')}")
+        lines.extend(_prediction_lines(pred))
     else:
         for i, seq in enumerate(sequences):
             pp = (seq or {}).get("predictionPayload") or {}
-            lines.append(f"[{i}] cif_url: {pp.get('cif_url') or '(none)'}")
-            lines.append(f"[{i}] meanPLLDT: {pp.get('meanPLLDT')}")
+            seq_lines = _prediction_lines(pp, prefix=f"[{i}] ")
+            if seq_lines:
+                lines.extend(seq_lines)
+            else:
+                lines.append(f"[{i}] predictionPayload: (none)")
     return "\n".join(lines)
 
 
@@ -99,11 +121,6 @@ def main():
     args = ap.parse_args()
 
     api_key = resolve_fastfold_api_key()
-    if not api_key:
-        sys.exit(
-            "Error: FASTFOLD_API_KEY is not configured. "
-            "Run `fastfold setup` or set `api.fastfold_cloud_key` in FastFold CLI config."
-        )
 
     job_id = validate_job_id(args.job_id)
     base_url = validate_base_url(args.base_url)

@@ -60,8 +60,7 @@ def main():
     api_key = resolve_fastfold_api_key()
     if args.check and not api_key:
         sys.exit(
-            "Error: --check requires FASTFOLD_API_KEY. "
-            "Run `fastfold setup` or set `api.fastfold_cloud_key` in FastFold CLI config."
+            "Error: --check requires FASTFOLD_API_KEY in env/.env or FastFold CLI config."
         )
 
     job_id = validate_job_id(args.job_id)

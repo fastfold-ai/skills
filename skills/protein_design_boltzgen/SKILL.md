@@ -262,6 +262,17 @@ When presenting results to users, include:
 - individual Mol* links per candidate in this format:
   - `https://cloud.fastfold.ai/mol/<libraryItemId>?from=library`
 
+Use consistent markdown labels for links in user-facing responses:
+
+- `[Composer Draft](...)`
+- `[Candidate #<rank> Mol*](...)`
+- `[Candidate #<rank> CIF](...)` (or equivalent structure link)
+- `[Results Overview PDF](...)`
+- `[All Designs Metrics CSV](...)`
+- `[Final Designs Metrics CSV](...)`
+
+For extra artifacts, use the artifact filename as the link label.
+
 Interpretation guardrails:
 
 - Discuss trends/ranking confidence; avoid wet-lab claims.

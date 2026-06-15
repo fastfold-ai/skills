@@ -313,9 +313,19 @@ The command fetches the workflow first and validates `--time-ns` against `sim_le
 
 As soon as the workflow is terminal with results populated, the agent must proactively surface two links to the user.
 
-**URL formatting rule (required):** print every URL as a bare, unwrapped URL on its own line, exactly as emitted by the scripts. Do **not** wrap URLs as markdown link-titles (`[title](url)`), HTML anchors, footnotes, or numbered reference lists — the `fastfold` terminal UI (and many other CLI chat UIs) render those with the URL hidden, so the user can't click or copy it. Also do not shorten or truncate URLs.
+**URL formatting rule (required):** in user-facing responses, prefer concise markdown link labels (for example `[Dashboard](...)`, `[Py2DMol Viewer](...)`, `[RMSD Plot](...)`) instead of dumping long raw URLs. Keep labels explicit and easy to scan.
+Use this standard label template whenever those URL types exist:
 
-1. **Fastfold Cloud dashboard (always)** — where the user can browse the run, view plots inline, and download artifacts. Print verbatim:
+- `[Dashboard](...)`
+- `[Public Share](...)` (only if public)
+- `[Py2DMol Viewer](...)`
+- `[FEL Plot](...)`, `[Radius of Gyration Plot](...)`
+- `[FEL CSV](...)`, `[Radius of Gyration CSV](...)`, `[Metrics JSON](...)`
+- `[Trajectory DCD](...)`, `[Topology PDB](...)`, `[Extracted Frame PDB](...)`
+
+For any additional artifact, use its filename as the link label.
+
+1. **Fastfold Cloud dashboard (always)** — where the user can browse the run, view plots inline, and download artifacts. Share as a labeled markdown link:
 
    ```
    https://cloud.fastfold.ai/openmm/results/<workflow_id>
@@ -327,7 +337,7 @@ As soon as the workflow is terminal with results populated, the agent must proac
    https://cloud.fastfold.ai/openmm/results/<workflow_id>?shared=true
    ```
 
-2. **Py2DMol trajectory viewer (always)** — precede the URL with this sentence, then print the URL on its own line:
+2. **Py2DMol trajectory viewer (always)** — include the short context sentence, then share as a labeled markdown link:
 
    > Trajectory is available for this run to visualize simulation, generate animations, and use playback controls in Py2DMol.
 
@@ -335,9 +345,9 @@ As soon as the workflow is terminal with results populated, the agent must proac
    https://cloud.fastfold.ai/py2dmol/new?from=openmm_workflow&workflow_id=<workflow_id>
    ```
 
-3. **Individual plot/data URLs** — each `artifacts[].url` that ends in `.png` / `.svg` / `.csv` / `.json` should likewise be printed as a bare URL on its own line, prefixed with its filename (e.g. `rmsd.png: https://…`). No markdown link-titles, no numbered lists of short labels.
+3. **Individual plot/data URLs** — each `artifacts[].url` that ends in `.png` / `.svg` / `.csv` / `.json` should be shared as a labeled markdown link using the filename or metric name in the label.
 
-`wait_for_workflow` and `fetch_results` already print these URLs as raw strings; forward them to the user verbatim — do not reformat.
+`wait_for_workflow.py` and `fetch_results.py` emit the source URLs; format them into concise labeled markdown links when replying to users.
 
 ## Workflow Status Values
 

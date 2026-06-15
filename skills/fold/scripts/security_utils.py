@@ -59,3 +59,21 @@ def validate_artifact_url(url: str) -> str:
     if ".cif" not in parsed.path.lower():
         sys.exit("Error: Artifact URL is not a CIF artifact.")
     return url
+
+
+def validate_fastfold_artifact_url(url: str) -> str:
+    """
+    Validate a generic downloadable FastFold artifact URL.
+    Allows only FastFold-hosted HTTPS URLs and rejects embedded credentials.
+    """
+    if not isinstance(url, str) or not url:
+        sys.exit("Error: Missing artifact URL.")
+    parsed = urlparse(url)
+    if parsed.scheme != "https":
+        sys.exit("Error: Artifact URL must use https.")
+    host = parsed.hostname or ""
+    if not (host == "artifacts.fastfold.ai" or host.endswith(".fastfold.ai")):
+        sys.exit("Error: Artifact URL host is not allowed.")
+    if parsed.username or parsed.password:
+        sys.exit("Error: Artifact URL must not include credentials.")
+    return url
