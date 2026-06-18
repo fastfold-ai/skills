@@ -123,8 +123,10 @@ For prompts like "Show me Boltzgen protein design examples":
   - `python scripts/workflow_api.py composer-link`
 - Execute:
   - `python scripts/workflow_api.py execute`
-- Wait:
+- Wait (auto-downloads all artifacts on COMPLETED):
   - `python scripts/workflow_api.py wait --poll-seconds 30 --timeout-seconds 7200`
+  - choose output dir: `python scripts/workflow_api.py wait --out-dir ./fastfold-artifacts/protein_design_boltzgen/<workflow_id>`
+  - opt out of auto-download: `python scripts/workflow_api.py wait --no-download`
 - Logs (single snapshot + interpretation):
   - `python scripts/workflow_api.py logs`
   - `python scripts/workflow_api.py logs --tail-lines 200`
@@ -135,8 +137,33 @@ For prompts like "Show me Boltzgen protein design examples":
 - Get candidates/metrics + links:
   - `python scripts/workflow_api.py results`
   - `python scripts/workflow_api.py results --json` (includes full `parsed_results_raw`, all metric field names, and `ranked_table`)
+- Download all output artifacts (CIF/CSV/PDF) to a local directory (writes `INVENTORY.md` + `inventory.json`):
+  - `python scripts/workflow_api.py download`
+  - `python scripts/workflow_api.py download --out-dir ./fastfold-artifacts/protein_design_boltzgen/<workflow_id>`
+  - `python scripts/workflow_api.py download --json`
+  - default out dir: `./fastfold-artifacts/protein_design_boltzgen/<workflow_id>`; per-file cap via `--max-bytes` (default 200 MB)
 
 The agent should run these scripts for the user rather than only listing commands.
+
+### Downloading results & artifacts
+
+Results return output files as **library item references** (`libraryItemId` + `fileName`),
+not direct URLs. Always download with the bundled script — never claim files are browser-only,
+and never use the browser route `cloud.fastfold.ai/api/structure` (it rejects API keys). The
+correct, API-key path is `GET /v1/library/file/{item_id}/{file_name}` (note the `library/file/...`
+order); the script resolves the signed `artifacts.fastfold.ai` URL and saves the bytes.
+
+- When a run reaches **COMPLETED**, download all artifacts automatically — do not wait to be asked:
+  - `wait` auto-downloads on COMPLETED (pass `--no-download` only if the user opts out).
+  - If the run already finished, run `python scripts/workflow_api.py download` yourself.
+- For non-COMPLETED terminal states (FAILED/STOPPED/CANCELLED) there are no artifacts — explain the status instead.
+- Each download writes a manifest into the output dir: `INVENTORY.md` (readable table: file, type,
+  size, description, CSV column preview) and `inventory.json` (full column list). Point the user to `INVENTORY.md`.
+
+Artifact types: `rank<k>_<x>.cif` (ranked design #k structure), `all_designs_metrics.csv`
+(all designs), `final_designs_metrics_<budget>.csv` (final selected set), `results_overview.pdf` (report).
+
+After downloading, report the local `out_dir` paths plus the Composer/Mol* links. See `references/api_endpoints.md`.
 
 ## Example-First Behavior (Required)
 
@@ -204,6 +231,7 @@ If no bundled preset matches the user's request, create a design-spec YAML from 
 7. **Poll status** via `GET /v1/workflows/status/{id}` until terminal.
 8. **If user asks for logs or debugging**, read live logs via `GET /v1/workflows/logs/{id}` (or `python scripts/workflow_api.py logs --watch`) and explain key markers.
 9. **Read results** via `GET /v1/workflows/task-results/{id}`.
+10. **Download artifacts automatically on COMPLETED**: `wait` auto-downloads all output files (CIF/CSV/PDF) when the run finishes; or run `python scripts/workflow_api.py download` explicitly. Both resolve signed URLs via `GET /v1/library/file/{item_id}/{file_name}` and save to disk. Report the local paths to the user.
 
 ## Design-Spec Authoring
 
@@ -265,13 +293,17 @@ When presenting results to users, include:
 Use consistent markdown labels for links in user-facing responses:
 
 - `[Composer Draft](...)`
-- `[Candidate #<rank> Mol*](...)`
-- `[Candidate #<rank> CIF](...)` (or equivalent structure link)
+- `[Candidate #<rank> Mol*](...)` (browser viewer link)
+- `Candidate #<rank> CIF: <local downloaded path>` (from `download`/`wait`; do not link `/api/structure`)
 - `[Results Overview PDF](...)`
 - `[All Designs Metrics CSV](...)`
 - `[Final Designs Metrics CSV](...)`
 
-For extra artifacts, use the artifact filename as the link label.
+For extra artifacts, use the artifact filename as the link label. For the actual structure
+files, prefer the local downloaded path; the Mol* link is a browser viewer, not a fetchable CIF.
+
+When the user wants the actual files (not just links), run `download` and report the
+local saved paths alongside these links — do not claim the files are browser-only.
 
 Interpretation guardrails:
 

@@ -68,7 +68,7 @@ Candidate row expected shape:
 - `target_ptm`: predicted TM confidence for target context.
 - `interaction_pae`: interface uncertainty/error estimate (lower is generally better).
 - `min_interaction_pae`: best-case/minimum interface PAE observed.
-- `bindsite_under_3rmsd ... bindsite_under_9rmsd`: fraction/proportion satisfying each binding-site RMSD cutoff.
+- `bindsite_under_3rmsd ... bindsite_under_9rmsd`: fraction/proportion satisfying each binding-site RMSD cutoff. These site-specific fields appear only for binding-site tasks (e.g. `vanilla_target_binding_site`); non-site tasks like `vanilla_protein` omit them.
 - `design_hydrophobicity`: hydrophobicity-related composition metric for designed sequence.
 - `helix`, `sheet`, `loop`: secondary-structure composition fractions.
 - `file.libraryItemId`, `file.fileName`: result structure artifact reference (open this CIF for geometry inspection).

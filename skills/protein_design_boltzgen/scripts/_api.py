@@ -13,6 +13,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
+from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
 
 
@@ -255,6 +256,88 @@ def resolve_fastfold_folder_id(
             if folder_id:
                 return folder_id
     return workspace_id
+
+
+def get_library_file_signed_url(
+    base_url: str,
+    *,
+    api_key: str,
+    item_id: str,
+    file_name: str,
+) -> str:
+    """Resolve a short-lived signed download URL for a stored library file.
+
+    Calls GET /v1/library/file/{item_id}/{file_name}, which returns a JSON string
+    containing a CloudFront-signed https URL on the FastFold artifact host.
+    """
+    path = f"/v1/library/file/{quote(str(item_id))}/{quote(str(file_name))}"
+    status, text = _request_once(
+        f"{base_url.rstrip('/')}{path}",
+        "GET",
+        {"Accept": "application/json", "X-API-Key": api_key},
+        None,
+        60.0,
+    )
+    if status != 200:
+        _fail_http("GET", base_url, path, status, text)
+    try:
+        url = json.loads(text) if text else ""
+    except json.JSONDecodeError:
+        url = text.strip().strip('"')
+    if not isinstance(url, str) or not url:
+        sys.exit(f"Error: No signed URL returned for library file {item_id}/{file_name}.")
+    return url
+
+
+def validate_artifact_url(url: str) -> str:
+    """Allow only FastFold-hosted https artifact URLs without embedded credentials."""
+    if not isinstance(url, str) or not url:
+        sys.exit("Error: Missing artifact URL.")
+    parsed = urlparse(url)
+    if parsed.scheme != "https":
+        sys.exit("Error: Artifact URL must use https.")
+    host = parsed.hostname or ""
+    if not (host == "artifacts.fastfold.ai" or host.endswith(".fastfold.ai")):
+        sys.exit(f"Error: Artifact URL host is not allowed: {host or '<empty>'}")
+    if parsed.username or parsed.password:
+        sys.exit("Error: Artifact URL must not include credentials.")
+    return url
+
+
+def download_artifact(
+    url: str,
+    out_path: Path,
+    *,
+    max_bytes: int = 200_000_000,
+    timeout: float = 180.0,
+) -> int:
+    """Download a validated FastFold artifact URL to out_path. Returns bytes written."""
+    validate_artifact_url(url)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    request = Request(url=url, method="GET")
+    try:
+        with urlopen(request, timeout=timeout) as response:
+            content_type = (response.headers.get("Content-Type") or "").lower()
+            if "html" in content_type or "javascript" in content_type:
+                sys.exit(f"Error: Unexpected artifact content-type: {content_type}")
+            written = 0
+            with out_path.open("wb") as handle:
+                while True:
+                    chunk = response.read(65536)
+                    if not chunk:
+                        break
+                    written += len(chunk)
+                    if written > max_bytes:
+                        handle.close()
+                        out_path.unlink(missing_ok=True)
+                        sys.exit(f"Error: Artifact exceeds size limit ({max_bytes} bytes): {out_path.name}")
+                    handle.write(chunk)
+            return written
+    except HTTPError as error:
+        body = error.read().decode("utf-8", errors="replace")[:200]
+        sys.exit(f"Error: download failed (HTTP {error.code}) for {out_path.name}: {body}")
+    except URLError as error:
+        sys.exit(f"Error: Network error while downloading {out_path.name}: {error.reason}")
 
 
 def composer_url(ui_base_url: str, workflow_id: str) -> str:

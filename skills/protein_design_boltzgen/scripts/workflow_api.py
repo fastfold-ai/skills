@@ -13,15 +13,18 @@ Flow:
 8) wait     -> poll until terminal
 9) logs     -> fetch live workflow logs and explain key markers
 10) results -> summarize candidates, metrics, and structure links
+11) download -> save all output artifacts (CIF/CSV/PDF) to a local directory
 """
 
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import re
 import sys
 import time
+import uuid
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
@@ -31,6 +34,8 @@ from _api import (
     TERMINAL_WORKFLOW_STATUSES,
     composer_url,
     create_library_item,
+    download_artifact,
+    get_library_file_signed_url,
     get_library_stored_file_name,
     request_json,
     request_text,
@@ -1085,7 +1090,10 @@ def cmd_logs(args: argparse.Namespace) -> None:
 def cmd_wait(args: argparse.Namespace) -> None:
     api_key = require_api_key(args.api_key)
     state = load_state(args.state_file)
-    api_base, _ = resolve_urls(args.base_url or state.get("api_base_url"), args.ui_base_url or state.get("ui_base_url"))
+    api_base, ui_base = resolve_urls(
+        args.base_url or state.get("api_base_url"),
+        args.ui_base_url or state.get("ui_base_url"),
+    )
     workflow_id = require_workflow_id(args, state)
 
     deadline = time.time() + args.timeout_seconds
@@ -1133,6 +1141,30 @@ def cmd_wait(args: argparse.Namespace) -> None:
     state["api_base_url"] = api_base
     save_state(args.state_file, state)
     print("terminal=true")
+
+    final_status = str((final_payload or {}).get("status") or "").upper()
+    if getattr(args, "no_download", False):
+        return
+    if final_status != "COMPLETED":
+        print(f"auto_download=skipped (workflow_status={final_status or 'UNKNOWN'}, no artifacts)")
+        return
+
+    print("auto_download=started")
+    download_payload = _download_workflow_artifacts(
+        api_base=api_base,
+        ui_base=ui_base,
+        api_key=api_key,
+        workflow_id=workflow_id,
+        out_dir_arg=args.out_dir,
+        max_bytes=args.max_bytes,
+        state=state,
+        state_file=args.state_file,
+    )
+    _print_download_payload(download_payload)
+    if download_payload["artifact_count"] == 0:
+        print("auto_download=no_artifacts_found")
+    elif download_payload["failed_count"] and not download_payload["downloaded_count"]:
+        print("auto_download=all_failed (artifacts found but none downloaded; retry `download`)")
 
 
 def cmd_results(args: argparse.Namespace) -> None:
@@ -1189,12 +1221,11 @@ def cmd_results(args: argparse.Namespace) -> None:
         file_ref = candidate.get("file") if isinstance(candidate.get("file"), dict) else {}
         file_id = str((file_ref or {}).get("libraryItemId") or "").strip()
         file_name = str((file_ref or {}).get("fileName") or "").strip()
-        structure_url = ""
         molstar_url = ""
         if file_id and file_name:
-            structure_url = (
-                f"{ui_base}/api/structure?itemId={quote(file_id)}&fileName={quote(file_name)}"
-            )
+            # Mol* is a browser viewer link. To get the actual CIF bytes, use the
+            # `download` command (resolves /v1/library/file/...). Do NOT build an
+            # /api/structure URL here: it is browser-session only and rejects API keys.
             molstar_url = f"{ui_base}/mol/{quote(file_id)}?from=library"
         candidate_summaries.append(
             {
@@ -1211,7 +1242,6 @@ def cmd_results(args: argparse.Namespace) -> None:
                 "sheet": candidate.get("sheet"),
                 "loop": candidate.get("loop"),
                 "file": file_ref if isinstance(file_ref, dict) else None,
-                "structure_url": structure_url,
                 "molstar_url": molstar_url,
             }
         )
@@ -1287,14 +1317,377 @@ def cmd_results(args: argparse.Namespace) -> None:
             f"Sheet {_fmt_percent(candidate.get('sheet'))} • "
             f"Loop {_fmt_percent(candidate.get('loop'))}"
         )
-        if candidate.get("structure_url"):
-            print(f"    structure={candidate['structure_url']}")
         if candidate.get("molstar_url"):
             print(f"    molstar={candidate['molstar_url']}")
     if output_refs:
         print("output_files:")
         for entry in output_refs:
             print(f"- {entry['fileName']} (libraryItemId={entry['libraryItemId']})")
+
+
+def _gather_downloadable_items(results_payload: dict[str, Any]) -> list[dict[str, str]]:
+    """Collect distinct (libraryItemId, fileName) output artifacts from task-results.
+
+    Includes per-candidate structure files and the run-level output_library_items
+    (e.g. metrics CSVs, results PDF).
+    """
+    tasks = results_payload.get("tasksResults")
+    if not isinstance(tasks, list):
+        tasks = []
+    seen: set[tuple[str, str]] = set()
+    items: list[dict[str, str]] = []
+
+    def _add(entry: Any) -> None:
+        if not isinstance(entry, dict):
+            return
+        item_id = str(entry.get("libraryItemId") or "").strip()
+        file_name = str(entry.get("fileName") or "").strip()
+        if not item_id or not file_name or (item_id, file_name) in seen:
+            return
+        try:
+            uuid.UUID(item_id)
+        except ValueError:
+            return
+        seen.add((item_id, file_name))
+        items.append({"libraryItemId": item_id, "fileName": file_name})
+
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        if str(task.get("task_type") or "") != "pipeline_run_boltzgen_v1":
+            continue
+        parsed = task.get("parsed_results")
+        if isinstance(parsed, list):
+            for candidate in parsed:
+                if isinstance(candidate, dict):
+                    _add(candidate.get("file"))
+        out_items = task.get("output_library_items")
+        if isinstance(out_items, list):
+            for entry in out_items:
+                _add(entry)
+    return items
+
+
+def _resolve_download_dir(out_dir_arg: str | None, workflow_id: str) -> Path:
+    if out_dir_arg:
+        out_dir = Path(out_dir_arg).expanduser()
+    else:
+        out_dir = Path("fastfold-artifacts") / "protein_design_boltzgen" / workflow_id
+    return out_dir.resolve()
+
+
+def _download_workflow_artifacts(
+    *,
+    api_base: str,
+    ui_base: str,
+    api_key: str,
+    workflow_id: str,
+    out_dir_arg: str | None,
+    max_bytes: int,
+    state: dict[str, Any],
+    state_file: Path,
+) -> dict[str, Any]:
+    """Resolve and download all output artifacts for a workflow.
+
+    Returns a payload dict (always; never calls sys.exit) so callers can decide
+    how to surface empty/all-failed cases.
+    """
+    results_payload = request_json(
+        api_base,
+        "GET",
+        f"/v1/workflows/task-results/{workflow_id}",
+        api_key=api_key,
+        accept_codes=(200,),
+    )
+    items = _gather_downloadable_items(results_payload)
+    out_dir = _resolve_download_dir(out_dir_arg, workflow_id)
+
+    downloaded: list[dict[str, Any]] = []
+    failed: list[dict[str, str]] = []
+    used_names: dict[str, int] = {}
+
+    if items:
+        out_dir.mkdir(parents=True, exist_ok=True)
+        for entry in items:
+            item_id = entry["libraryItemId"]
+            logical_name = entry["fileName"]
+            try:
+                stored_name = get_library_stored_file_name(api_base, api_key=api_key, item_id=item_id)
+            except SystemExit:
+                stored_name = logical_name
+            try:
+                signed_url = get_library_file_signed_url(
+                    api_base,
+                    api_key=api_key,
+                    item_id=item_id,
+                    file_name=stored_name,
+                )
+            except SystemExit as error:
+                failed.append({"fileName": logical_name, "libraryItemId": item_id, "error": str(error)})
+                continue
+
+            safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", logical_name) or f"{item_id}.bin"
+            if set(safe_name) <= {"."}:
+                safe_name = f"{item_id}.bin"
+            count = used_names.get(safe_name, 0)
+            used_names[safe_name] = count + 1
+            if count:
+                stem, dot, ext = safe_name.rpartition(".")
+                safe_name = f"{stem}_{count}.{ext}" if dot else f"{safe_name}_{count}"
+            out_path = out_dir / safe_name
+            try:
+                size = download_artifact(signed_url, out_path, max_bytes=max_bytes)
+            except SystemExit as error:
+                failed.append({"fileName": logical_name, "libraryItemId": item_id, "error": str(error)})
+                continue
+            downloaded.append(
+                {
+                    "fileName": logical_name,
+                    "libraryItemId": item_id,
+                    "path": str(out_path),
+                    "bytes": size,
+                }
+            )
+
+    inventory = _build_inventory(downloaded)
+    payload = {
+        "workflow_id": workflow_id,
+        "composer_url": str(state.get("composer_url") or composer_url(ui_base, workflow_id)),
+        "out_dir": str(out_dir),
+        "artifact_count": len(items),
+        "downloaded_count": len(downloaded),
+        "failed_count": len(failed),
+        "downloaded": downloaded,
+        "failed": failed,
+        "inventory": inventory,
+    }
+    if downloaded:
+        payload["inventory_files"] = _write_inventory_files(out_dir, payload)
+    state["last_download"] = payload
+    state["workflow_id"] = workflow_id
+    state["api_base_url"] = api_base
+    save_state(state_file, state)
+    return payload
+
+
+_RANKED_CIF_RE = re.compile(r"^rank(\d+)_.*\.cif$", re.IGNORECASE)
+
+
+def _csv_summary(path: Path) -> tuple[list[str], int]:
+    """Return (column_names, data_row_count) for a CSV file. Best-effort."""
+    try:
+        with path.open("r", encoding="utf-8", errors="replace", newline="") as handle:
+            reader = csv.reader(handle)
+            try:
+                header = next(reader)
+            except StopIteration:
+                return ([], 0)
+            columns = [str(c).strip() for c in header]
+            row_count = sum(1 for _ in reader)
+            return (columns, row_count)
+    except OSError:
+        return ([], 0)
+
+
+def _describe_artifact(file_name: str, path: Path | None) -> dict[str, Any]:
+    """Describe a BoltzGen output artifact based on its name/content.
+
+    Descriptions are grounded in the pipeline's output structure
+    (final_ranked_designs) and the metrics guide.
+    """
+    lower = file_name.lower()
+    entry: dict[str, Any] = {"category": "artifact", "description": "Output artifact."}
+
+    ranked = _RANKED_CIF_RE.match(file_name)
+    if ranked:
+        rank_no = ranked.group(1)
+        entry["category"] = "ranked_structure"
+        entry["description"] = (
+            f"Ranked design #{rank_no}: predicted 3D structure (mmCIF) of the designed "
+            "binder in complex with the target. Open in a molecular viewer (Mol*)."
+        )
+    elif lower == "all_designs_metrics.csv":
+        entry["category"] = "metrics_all"
+        entry["description"] = (
+            "Metrics for every generated/considered design (one row per design): "
+            "designed_sequence, iptm/ptm confidence, interaction_pae, secondary-structure %, ranks."
+        )
+    elif lower.startswith("final_designs_metrics_") and lower.endswith(".csv"):
+        entry["category"] = "metrics_final"
+        entry["description"] = (
+            "Metrics for the final selected design set (after quality/diversity filtering); "
+            "the trailing number is the selection budget."
+        )
+    elif lower == "results_overview.pdf":
+        entry["category"] = "report"
+        entry["description"] = "Human-readable summary report: ranked designs, key metrics, and plots."
+    elif lower.endswith((".cif", ".mmcif", ".pdb", ".ent")):
+        entry["category"] = "structure"
+        entry["description"] = "Molecular structure file."
+    elif lower.endswith(".csv"):
+        entry["category"] = "table"
+        entry["description"] = "Tabular metrics/data."
+    elif lower.endswith(".pdf"):
+        entry["category"] = "report"
+        entry["description"] = "PDF report."
+    elif lower.endswith(".json"):
+        entry["category"] = "data"
+        entry["description"] = "JSON data."
+    elif lower.endswith((".yml", ".yaml")):
+        entry["category"] = "spec"
+        entry["description"] = "YAML specification."
+
+    if path is not None and path.exists() and lower.endswith(".csv"):
+        columns, rows = _csv_summary(path)
+        if columns:
+            entry["columns"] = columns
+            entry["column_count"] = len(columns)
+            entry["row_count"] = rows
+    return entry
+
+
+_MAX_COLS_SHOWN = 12
+
+
+def _format_columns(columns: list[Any], total: int | None = None) -> str:
+    total = total if isinstance(total, int) else len(columns)
+    shown = [str(c) for c in columns[:_MAX_COLS_SHOWN]]
+    text = ", ".join(shown)
+    if total > _MAX_COLS_SHOWN:
+        text += f", … (+{total - _MAX_COLS_SHOWN} more)"
+    return text
+
+
+def _build_inventory(downloaded: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    inventory: list[dict[str, Any]] = []
+    for item in downloaded:
+        file_name = str(item.get("fileName") or "")
+        path_str = str(item.get("path") or "")
+        path = Path(path_str) if path_str else None
+        described = _describe_artifact(file_name, path)
+        inventory.append(
+            {
+                "fileName": file_name,
+                "path": path_str,
+                "bytes": item.get("bytes"),
+                "category": described["category"],
+                "description": described["description"],
+                **({"columns": described["columns"]} if "columns" in described else {}),
+                **({"column_count": described["column_count"]} if "column_count" in described else {}),
+                **({"row_count": described["row_count"]} if "row_count" in described else {}),
+            }
+        )
+    return inventory
+
+
+def _write_inventory_files(out_dir: Path, payload: dict[str, Any]) -> dict[str, str]:
+    """Write INVENTORY.md and inventory.json into out_dir. Returns their paths."""
+    inventory = payload.get("inventory") or []
+    workflow_id = payload.get("workflow_id")
+    composer = payload.get("composer_url")
+
+    lines: list[str] = []
+    lines.append("# BoltzGen Output Inventory")
+    lines.append("")
+    lines.append(f"- Workflow: `{workflow_id}`")
+    if composer:
+        lines.append(f"- Composer: {composer}")
+    lines.append(f"- Files: {len(inventory)}")
+    lines.append("")
+    lines.append("| File | Type | Size | Description |")
+    lines.append("|---|---|---:|---|")
+    for entry in inventory:
+        size = entry.get("bytes")
+        size_str = f"{size:,} B" if isinstance(size, int) else "-"
+        desc = str(entry.get("description") or "").replace("|", "\\|")
+        lines.append(f"| `{entry.get('fileName')}` | {entry.get('category')} | {size_str} | {desc} |")
+
+    csv_entries = [e for e in inventory if e.get("columns")]
+    if csv_entries:
+        lines.append("")
+        lines.append("## CSV contents")
+        lines.append("")
+        lines.append("Full column lists are in `inventory.json`.")
+        for entry in csv_entries:
+            cols = _format_columns(entry.get("columns", []), entry.get("column_count"))
+            rows = entry.get("row_count")
+            total_cols = entry.get("column_count")
+            lines.append(f"- `{entry.get('fileName')}` ({rows} rows × {total_cols} columns): {cols}")
+    lines.append("")
+
+    md_path = out_dir / "INVENTORY.md"
+    json_path = out_dir / "inventory.json"
+    md_path.write_text("\n".join(lines), encoding="utf-8")
+    json_path.write_text(
+        json.dumps(
+            {
+                "workflow_id": workflow_id,
+                "composer_url": composer,
+                "out_dir": payload.get("out_dir"),
+                "files": inventory,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    return {"markdown": str(md_path), "json": str(json_path)}
+
+
+def _print_download_payload(payload: dict[str, Any]) -> None:
+    print(f"workflow_id={payload['workflow_id']}")
+    print(f"out_dir={payload['out_dir']}")
+    print(f"downloaded={payload['downloaded_count']} failed={payload['failed_count']}")
+    inventory_by_path = {e.get("path"): e for e in payload.get("inventory", [])}
+    for item in payload.get("downloaded", []):
+        described = inventory_by_path.get(item.get("path"), {})
+        print(f"- {item['fileName']} ({item['bytes']} bytes) -> {item['path']}")
+        desc = described.get("description")
+        if desc:
+            print(f"    {desc}")
+        if described.get("columns"):
+            cols = _format_columns(described["columns"], described.get("column_count"))
+            print(
+                f"    {described.get('row_count')} rows × {described.get('column_count')} columns: {cols}"
+            )
+    for item in payload.get("failed", []):
+        print(f"- FAILED {item['fileName']} (libraryItemId={item['libraryItemId']}): {item['error']}")
+    inv_files = payload.get("inventory_files")
+    if isinstance(inv_files, dict) and inv_files.get("markdown"):
+        print(f"inventory={inv_files['markdown']}")
+
+
+def cmd_download(args: argparse.Namespace) -> None:
+    api_key = require_api_key(args.api_key)
+    state = load_state(args.state_file)
+    api_base, ui_base = resolve_urls(
+        args.base_url or state.get("api_base_url"),
+        args.ui_base_url or state.get("ui_base_url"),
+    )
+    workflow_id = require_workflow_id(args, state)
+
+    payload = _download_workflow_artifacts(
+        api_base=api_base,
+        ui_base=ui_base,
+        api_key=api_key,
+        workflow_id=workflow_id,
+        out_dir_arg=args.out_dir,
+        max_bytes=args.max_bytes,
+        state=state,
+        state_file=args.state_file,
+    )
+
+    if args.json:
+        print(json.dumps(payload, indent=2))
+    else:
+        _print_download_payload(payload)
+
+    if payload["artifact_count"] == 0:
+        sys.exit(
+            "Error: No output artifacts found for this workflow. "
+            "Confirm the run is COMPLETED (use `wait`/`status`) before downloading."
+        )
+    if payload["failed_count"] and not payload["downloaded_count"]:
+        sys.exit("Error: All artifact downloads failed.")
 
 
 def cmd_composer_link(args: argparse.Namespace) -> None:
@@ -1393,10 +1786,29 @@ def build_parser() -> argparse.ArgumentParser:
     p_status.add_argument("--json", action="store_true", help="Print raw status JSON.")
     p_status.set_defaults(func=cmd_status)
 
-    p_wait = sub.add_parser("wait", help="Wait for terminal status.")
+    p_wait = sub.add_parser(
+        "wait",
+        help="Wait for terminal status, then auto-download artifacts when COMPLETED.",
+    )
     p_wait.add_argument("--workflow-id", default=None, help="Workflow id (optional if in state).")
     p_wait.add_argument("--poll-seconds", type=int, default=30, help="Polling interval.")
     p_wait.add_argument("--timeout-seconds", type=int, default=7200, help="Timeout.")
+    p_wait.add_argument(
+        "--no-download",
+        action="store_true",
+        help="Do not auto-download output artifacts after a COMPLETED run.",
+    )
+    p_wait.add_argument(
+        "--out-dir",
+        default=None,
+        help="Auto-download destination (default: ./fastfold-artifacts/protein_design_boltzgen/<workflow_id>).",
+    )
+    p_wait.add_argument(
+        "--max-bytes",
+        type=int,
+        default=200_000_000,
+        help="Maximum bytes per auto-downloaded artifact (default 200000000).",
+    )
     p_wait.set_defaults(func=cmd_wait)
 
     p_logs = sub.add_parser("logs", help="Fetch workflow logs and explain current log meaning.")
@@ -1413,6 +1825,25 @@ def build_parser() -> argparse.ArgumentParser:
     p_results.add_argument("--json", action="store_true", help="Print JSON summary.")
     p_results.add_argument("--top-n", type=int, default=10, help="Top N candidates in text output.")
     p_results.set_defaults(func=cmd_results)
+
+    p_download = sub.add_parser(
+        "download",
+        help="Download all output artifacts (CIF/CSV/PDF) + write INVENTORY.md/inventory.json.",
+    )
+    p_download.add_argument("--workflow-id", default=None, help="Workflow id (optional if in state).")
+    p_download.add_argument(
+        "--out-dir",
+        default=None,
+        help="Destination directory (default: ./fastfold-artifacts/protein_design_boltzgen/<workflow_id>).",
+    )
+    p_download.add_argument(
+        "--max-bytes",
+        type=int,
+        default=200_000_000,
+        help="Maximum bytes per downloaded artifact (default 200000000).",
+    )
+    p_download.add_argument("--json", action="store_true", help="Print JSON summary.")
+    p_download.set_defaults(func=cmd_download)
 
     p_link = sub.add_parser("composer-link", help="Print composer link for the workflow.")
     p_link.add_argument("--workflow-id", default=None, help="Workflow id (optional if in state).")
