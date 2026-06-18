@@ -4,6 +4,8 @@ A collection of skills for AI agents. Skills are packaged instructions and scrip
 
 Skills follow the [Agent Skills](https://agentskills.io/) format. Each skill is self-contained and portable: its scripts use only the Python standard library and are invoked directly as `python scripts/<name>.py ...` from the skill directory, so they run consistently wherever the skill is installed.
 
+Browse the skills catalog in Fastfold Cloud: [cloud.fastfold.ai/agents/skills](https://cloud.fastfold.ai/agents/skills).
+
 ## Install
 
 Install all skills with the Skills CLI (Node/`npx`):
@@ -18,6 +20,10 @@ Or with the Fastfold Agent CLI (native, no Node required):
 fastfold skills add fastfold-ai/skills                      # all skills
 fastfold skills add fastfold-ai/skills@skills/fold          # a single skill
 ```
+
+These are the same catalog skills used by the [Fastfold Agent CLI](https://github.com/fastfold-ai/fastfold-agent-cli). See:
+- Agent CLI docs: [docs.fastfold.ai/agents/cli](https://docs.fastfold.ai/agents/cli)
+- Agent CLI skills docs: [docs.fastfold.ai/agents/cli/skills](https://docs.fastfold.ai/agents/cli/skills)
 
 ## Usage
 
