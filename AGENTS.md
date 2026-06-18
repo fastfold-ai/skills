@@ -96,6 +96,29 @@ For distribution as a single artifact:
 - **Zip:** From repo root: `zip -r skills/{skill-name}.zip skills/{skill-name}/`
 - **Skill packager:** If using the skill-creator tooling (e.g. in `.agents/skills/skill-creator/`), run `package_skill.py` on the skill folder to produce a `.skill` file.
 
+### Releasing (Versioning)
+
+The catalog is versioned **as a whole** — one semver release tag per catalog
+version (not per skill). The Fastfold Agent CLI reads the latest GitHub Release
+to show a skills version in `fastfold skills list` / `/skills` and to surface an
+upgrade notice on boot.
+
+To cut a release:
+
+1. Update `CHANGELOG.md` — move items from `[Unreleased]` into a new
+   `## [X.Y.Z] - YYYY-MM-DD` section.
+2. Bump the root `VERSION` file to `X.Y.Z` (no `v` prefix).
+3. Commit, then tag and push:
+
+```bash
+git commit -am "Release vX.Y.Z"
+git tag vX.Y.Z
+git push origin main --tags
+```
+
+The `.github/workflows/release.yml` workflow verifies the tag matches `VERSION`,
+extracts the matching `CHANGELOG.md` section, and publishes the GitHub Release.
+
 ### End-User Installation
 
 Document these installation methods for users:
