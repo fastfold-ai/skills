@@ -8,11 +8,17 @@ and the catalog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-06-18
+
+### Added
+- New skill: `diagrams_mermaid` for on-demand and proactive Mermaid diagram generation, including workflow templates for computational biology pipelines.
+
 ## [1.0.0] - 2026-06-18
 
 ### Added
 - Initial versioned release of the Fastfold AI Skills catalog.
 - Skills: `fold`, `protein_design_boltzgen`, `md_openmm_calvados`, `md_openmmdl`, `slack_report`.
 
-[Unreleased]: https://github.com/fastfold-ai/skills/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/fastfold-ai/skills/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.1
 [1.0.0]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.0

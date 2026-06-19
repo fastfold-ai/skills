@@ -52,6 +52,7 @@ Skills in this repo live in the **`skills/`** folder.
 | `md_openmm_calvados` | CALVADOS + OpenMM molecular dynamics workflows |
 | `md_openmmdl` | OpenMMDL protein-ligand molecular dynamics workflows |
 | `slack_report` | Post markdown reports to Slack and save library copies |
+| `diagrams_mermaid` | Generate Mermaid diagrams for complex workflows and pipeline explanations |
 
 Install a single skill with `fastfold skills add fastfold-ai/skills@skills/<skill>` (or `npx skills add fastfold-ai/skills`).
 
@@ -128,6 +129,22 @@ Share markdown reports to Slack and save a copy to Fastfold library.
 - `send_agent_cli_report.py` – send markdown report to Slack report channel and save to library
 
 **Requires:** `FASTFOLD_API_KEY` from environment or `.env`.
+
+### diagrams_mermaid
+
+Generate Mermaid diagrams on demand and proactively for multi-step workflows.
+
+**Use when:**
+- User explicitly asks for flowcharts, sequence diagrams, Mermaid output, or architecture maps
+- You are explaining complex pipelines with branching/dependencies
+- You need visual workflow summaries for computational biology runs (for example BoltzGen, fold -> MD chains)
+
+**Features:**
+- Diagram type selection guidance (flowchart, sequence, state, ER)
+- Syntax guardrails for reliable Mermaid rendering
+- Reusable templates for FastFold and general multi-step workflow explanations
+
+**Requires:** No API key.
 
 ### Setting your FastFold API key
 
