@@ -8,6 +8,17 @@ and the catalog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-06-20
+
+### Added
+- Added `skills/boltz/references/examples.md` with 1-2 small, copy-paste examples per Boltz mode (`sab`, protein design/screen, small-molecule design/screen, `adme`, status/recovery/stop), including user prompt phrasing and runnable commands.
+- Added Boltz quick example prompts and examples-reference links to the catalog `README.md`.
+
+### Changed
+- Upgraded Boltz examples to use real UniProt-backed target sequence fragments (with accession and residue ranges) and known small molecules for auditable quick runs.
+- Extended unified Boltz runner with `status --action stop` support for design/screen jobs.
+- Simplified `skills/boltz/references/api.md` to focus on API contract/mapping (removed non-contract launch/report links).
+
 ## [1.0.3] - 2026-06-20
 
 ### Changed
@@ -33,7 +44,8 @@ and the catalog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 - Initial versioned release of the Fastfold AI Skills catalog.
 - Skills: `fold`, `protein_design_boltzgen`, `md_openmm_calvados`, `md_openmmdl`, `slack_report`.
 
-[Unreleased]: https://github.com/fastfold-ai/skills/compare/v1.0.3...HEAD
+[Unreleased]: https://github.com/fastfold-ai/skills/compare/v1.0.4...HEAD
+[1.0.4]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.4
 [1.0.3]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.3
 [1.0.2]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.2
 [1.0.1]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.1

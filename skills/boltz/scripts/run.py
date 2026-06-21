@@ -207,6 +207,9 @@ def _status_mode(args: argparse.Namespace) -> int:
             ]
         )
         return 0
+    if args.action == "stop":
+        run(["boltz-api", RESOURCE_MAP[args.resource], "stop", "--id", args.job_id, "--format", "json"])
+        return 0
     # list
     for resource in RESOURCE_MAP.values():
         run(["boltz-api", resource, "list", "--limit", args.limit, "--format", "jsonl"])
@@ -226,7 +229,7 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument("--yes", action="store_true")
 
     status = sub.add_parser("status")
-    status.add_argument("--action", choices=("status", "retrieve", "resume", "list"), required=True)
+    status.add_argument("--action", choices=("status", "retrieve", "resume", "stop", "list"), required=True)
     status.add_argument("--run-name")
     status.add_argument("--job-id")
     status.add_argument("--resource", choices=sorted(RESOURCE_MAP.keys()))
@@ -241,8 +244,8 @@ def main() -> int:
     if args.mode == "status":
         if args.action == "status" and not args.run_name:
             raise SystemExit("--run-name is required for status action")
-        if args.action == "retrieve" and (not args.job_id or not args.resource):
-            raise SystemExit("--job-id and --resource are required for retrieve action")
+        if args.action in {"retrieve", "stop"} and (not args.job_id or not args.resource):
+            raise SystemExit("--job-id and --resource are required for retrieve/stop action")
         if args.action == "resume" and (not args.job_id or not args.run_name):
             raise SystemExit("--job-id and --run-name are required for resume action")
         return _status_mode(args)

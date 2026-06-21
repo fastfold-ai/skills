@@ -49,6 +49,19 @@ KNOWN_FIELD_LABELS = {
 }
 
 
+def _should_skip_url_candidate(source_path: str, url: str) -> bool:
+    """
+    Skip user/profile metadata URLs that are not fold artifacts.
+    """
+    src = source_path.lower()
+    if "avatar" in src:
+        return True
+    file_name = _filename_from_url(url).lower()
+    if file_name.startswith("avatar"):
+        return True
+    return False
+
+
 def get_results(base_url: str, api_key: str | None, job_id: str) -> dict:
     url = f"{base_url.rstrip('/')}/v1/jobs/{job_id}/results"
     headers = {"Accept": "application/json"}
@@ -169,6 +182,8 @@ def collect_artifact_links(results_payload: dict) -> list[dict]:
 
     for source_path, url in ordered_candidates:
         if not isinstance(url, str) or not url:
+            continue
+        if _should_skip_url_candidate(source_path, url):
             continue
         entry = by_url.get(url)
         if entry is None:

@@ -17,6 +17,18 @@ Use this single skill for all Boltz API workflows:
 - ADME
 - status/retrieve/resume
 
+Coverage alignment with new Boltz releases:
+
+- BoltzMol-1 workflows map to:
+  - `sm-design` (de novo generation)
+  - `sm-screen` (library screening)
+  - `adme` (Tier-1 ADME prediction)
+- BoltzProt-1 workflows map to:
+  - `protein-design` (binder generation)
+  - `protein-screen` (library screening)
+- Boltz-2 structure/binding maps to:
+  - `sab`
+
 ## Authentication
 
 - `boltz-api` is expected to be preinstalled in the runtime image.
@@ -47,7 +59,7 @@ Use this single skill for all Boltz API workflows:
    - `python scripts/run.py <mode> --payload payload.yaml --run-name <slug> --estimate-only`
 3. If execution is approved, run full end-to-end:
    - `python scripts/run.py <mode> --payload payload.yaml --run-name <slug> --yes`
-4. For status/recovery, use `status` mode actions (`status`, `retrieve`, `resume`, `list`).
+4. For status/recovery, use `status` mode actions (`status`, `retrieve`, `resume`, `stop`, `list`).
 5. Return deterministic summary keys:
    - `job_id` (if available)
    - `idempotency_key`
@@ -73,7 +85,14 @@ Use this single skill for all Boltz API workflows:
     - `python scripts/run.py status --action status --run-name sab-target-v1`
     - `python scripts/run.py status --action retrieve --resource sab --job-id <job-id>`
     - `python scripts/run.py status --action resume --job-id <job-id> --run-name sab-target-v1`
+    - `python scripts/run.py status --action stop --resource sm_design --job-id <job-id>`
     - `python scripts/run.py status --action list --limit 20`
+
+## Quick Examples
+
+For 1-2 small examples per use case (SAB, protein design/screen, small-molecule design/screen, ADME, status), use:
+
+- [references/examples.md](references/examples.md)
 
 ## Guardrails
 
@@ -89,3 +108,4 @@ Use this single skill for all Boltz API workflows:
 
 - Read [references/api.md](references/api.md) for raw HTTP endpoint mappings and mode-to-resource details.
 - Read [references/results.md](references/results.md) for run directory layout and resume rules.
+- Read [references/examples.md](references/examples.md) for copy-paste small payloads and user-facing prompt examples.

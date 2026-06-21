@@ -80,6 +80,16 @@ Unified Boltz API automation through one script entrypoint for:
 **Scripts:**
 - `run.py` – unified end-to-end runner and status/recovery helper
 
+**Example prompts (small runnable examples):**
+- "Run a simple ROR1-style Boltz-2 structure-and-binding smoke test with aspirin; estimate first, then execute."
+- "Run a minimal AMBP-style protein design job with 10 proteins and return top metrics/artifact paths."
+- "Screen aspirin, ibuprofen, and caffeine against a PknB-style target with `sm-screen` and summarize top hits."
+- "Run ADME quick triage for aspirin, ibuprofen, phenol, and caffeine."
+- "Recover this job with `status retrieve`, then resume downloads with my previous run name."
+
+Reference examples:
+- [skills/boltz/references/examples.md](https://github.com/fastfold-ai/skills/blob/main/skills/boltz/references/examples.md)
+
 **Requires:** `BOLTZ_API_KEY` in the sandbox/runtime environment.
 If missing, configure provider access at [Fastfold Boltz Provider](https://cloud.fastfold.ai/integrations/providers?provider=boltz), create/get a key at [Boltz Console](https://api.boltz.bio/console), and restart the sandbox.
 
