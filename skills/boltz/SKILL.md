@@ -20,11 +20,15 @@ Use this single skill for all Boltz API workflows:
 ## Authentication
 
 - `boltz-api` is expected to be preinstalled in the runtime image.
-- `BOLTZ_API_KEY` must be available in the runtime environment.
-- If `BOLTZ_API_KEY` is missing, stop and ask the user to:
-  - configure Boltz provider access in Fastfold: `https://cloud.fastfold.ai/integrations/providers?provider=boltz`
+- `BOLTZ_API_KEY` must be available before running commands.
+- Accept any of these auth setups:
+  - runtime/env injection already provides `BOLTZ_API_KEY` (preferred in hosted agent runtimes)
+  - local `.env`/shell env exports `BOLTZ_API_KEY` for the active agent process
+- If `BOLTZ_API_KEY` is missing, stop and ask the user to set it using their runtime method.
+- Fastfold Cloud-specific option (if relevant for the user):
+  - configure Boltz provider access: `https://cloud.fastfold.ai/integrations/providers?provider=boltz`
   - create/get API key in Boltz console: `https://api.boltz.bio/console`
-  - restart the sandbox so the new env var is available to commands
+  - restart sandbox/session so the new env var is visible to commands
 - If CLI/auth is unavailable, report the infrastructure issue and stop.
 
 ## When to Use This Skill

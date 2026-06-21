@@ -8,6 +8,11 @@ and the catalog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-06-20
+
+### Changed
+- Updated `skills/boltz/SKILL.md` authentication guidance to be runtime-agnostic: accepts env injection or local `.env`/shell env usage for `BOLTZ_API_KEY`, with Fastfold Cloud setup as an optional path.
+
 ## [1.0.2] - 2026-06-20
 
 ### Added
@@ -28,7 +33,8 @@ and the catalog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 - Initial versioned release of the Fastfold AI Skills catalog.
 - Skills: `fold`, `protein_design_boltzgen`, `md_openmm_calvados`, `md_openmmdl`, `slack_report`.
 
-[Unreleased]: https://github.com/fastfold-ai/skills/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/fastfold-ai/skills/compare/v1.0.3...HEAD
+[1.0.3]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.3
 [1.0.2]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.2
 [1.0.1]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.1
 [1.0.0]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.0
