@@ -47,6 +47,7 @@ Skills in this repo live in the **`skills/`** folder.
 
 | Skill | Primary use |
 |---|---|
+| `boltz` | Direct Boltz API workflows (SAB, protein/small-molecule design/screen, ADME, status/recovery) |
 | `fold` | FastFold Jobs API submission, waiting, and result retrieval |
 | `protein_design_boltzgen` | BoltzGen protein design workflow orchestration |
 | `md_openmm_calvados` | CALVADOS + OpenMM molecular dynamics workflows |
@@ -55,6 +56,32 @@ Skills in this repo live in the **`skills/`** folder.
 | `diagrams_mermaid` | Generate Mermaid diagrams for complex workflows and pipeline explanations |
 
 Install a single skill with `fastfold skills add fastfold-ai/skills@skills/<skill>` (or `npx skills add fastfold-ai/skills`).
+
+### boltz
+
+Unified Boltz API automation through one script entrypoint for:
+
+- structure-and-binding
+- protein design and protein library screen
+- small-molecule design and library screen
+- ADME
+- status/retrieve/resume flows
+
+**Use when:**
+- The user explicitly wants direct Boltz API execution (`boltz-api` flows)
+- You need estimate -> submit -> wait/download -> summary in one run
+- You need deterministic run recovery and artifact persistence
+
+**Key runtime behavior:**
+- Uses `/tmp/boltz-runs` for checkpoint-safe runtime downloads
+- Mirrors finalized run directories to `/workspace/boltz-artifacts/boltz/<run_dir_name>/`
+- Returns deterministic summary fields including `run_dir` and `persistent_run_dir`
+
+**Scripts:**
+- `run.py` – unified end-to-end runner and status/recovery helper
+
+**Requires:** `BOLTZ_API_KEY` in the sandbox/runtime environment.
+If missing, configure provider access at [Fastfold Boltz Provider](https://cloud.fastfold.ai/integrations/providers?provider=boltz), create/get a key at [Boltz Console](https://api.boltz.bio/console), and restart the sandbox.
 
 ### fold
 

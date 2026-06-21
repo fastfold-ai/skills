@@ -8,6 +8,15 @@ and the catalog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-06-20
+
+### Added
+- New unified skill: `boltz` for direct Boltz API workflows (structure-and-binding, protein/small-molecule design and screen, ADME, status/recovery) with one end-to-end runner.
+
+### Changed
+- Standardized Boltz skill runtime behavior for deterministic execution on Modal sandboxes: tmp-first downloads/checkpoints (`/tmp/boltz-runs`) with persistence mirror to `/workspace/boltz-artifacts/boltz/<run_dir_name>/`.
+- Added first-party Boltz API endpoint reference mapping and updated skill guidance for `BOLTZ_API_KEY` setup + sandbox restart flow.
+
 ## [1.0.1] - 2026-06-18
 
 ### Added
@@ -19,6 +28,7 @@ and the catalog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 - Initial versioned release of the Fastfold AI Skills catalog.
 - Skills: `fold`, `protein_design_boltzgen`, `md_openmm_calvados`, `md_openmmdl`, `slack_report`.
 
-[Unreleased]: https://github.com/fastfold-ai/skills/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/fastfold-ai/skills/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.2
 [1.0.1]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.1
 [1.0.0]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.0
