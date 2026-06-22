@@ -1,81 +1,47 @@
-# Unified Boltz Results Reference
+# Boltz Results, Persistence & Recovery
 
-Default runtime output root (bundled runner default):
+## Where results go
 
-- `/tmp/boltz-runs`
+- Download to a POSIX path: `/tmp/boltz-runs/<slug>` (`--root-dir /tmp/boltz-runs --name <slug>`).
+- `/tmp` is ephemeral — wiped on sandbox eviction.
+- Persist to the durable, S3-backed workspace with `scripts/persist.sh /tmp/boltz-runs/<slug>`,
+  which copies into `/workspace/boltz-artifacts/boltz/<slug>/`. The CLI can't write to `/workspace`
+  directly (it's not a full POSIX filesystem), which is why the copy step exists.
 
-Persistent mirror root:
+## Run directory layout
 
-- `/workspace/boltz-artifacts/boltz`
-- Runner mirrors `<run_name>` into `/workspace/boltz-artifacts/boltz/<run_name>/` after successful download/run.
+`download-results` / `run` fetch the **complete** result set (it follows the remote cursor):
 
-Ephemerality and durability:
+```
+/tmp/boltz-runs/<slug>/
+  .boltz-run.json            # CLI local run metadata
+  results/
+    <result_id>/metadata.json
+    <result_id>/archive.tar.gz
+    ...                      # one folder per item
+```
 
-- `/tmp/boltz-runs` is wiped whenever the sandbox is evicted or recreated.
-- Durable state lives in the Boltz API (the job) and the `/workspace` mirror.
-- At submit time the runner writes `manifest.json` (`run_name`, `job_id`, `resource`) to the
-  workspace immediately, before the long download poll, so a run stays recoverable even if the
-  submit/wait is interrupted.
-- `resume` and `recover` always mirror downloaded results to `/workspace`; `status` auto-restores
-  the workspace mirror back into `/tmp` before reading local checkpoint state.
+To return first/top/ranked N, enumerate `results/` and read each `metadata.json` — the local set is
+complete, so no manual API paging is needed. For a quick peek without downloading archives
+(design/screen only), use `boltz-api <resource> list-results --id <id> --format jsonl`
+(`--after-id` / `--max-items -1` to page). For `sab`/`adme`, results come back inline via
+`boltz-api <resource> retrieve --id <id> --format json`.
 
-Runner summary output includes:
+## Naming / idempotency
 
-- `job_id` (for non-ADME modes)
-- `idempotency_key`
-- `run_name`
-- `run_dir`
-- `output_root`
-- `persistent_run_dir`
-- `estimate`
+- Use one stable slug per experiment, reused as both `--idempotency-key` and `--name`.
+- Use a **new** slug for a new experiment; reuse the same slug only for idempotent retries/downloads
+  (reusing a slug with a changed payload can collide with the prior job).
 
-Recommended naming/idempotency strategy:
+## Recovery after eviction (never re-submit)
 
-- Use one stable slug per experiment for `--run-name`.
-- Reuse that same slug for idempotent retries and downloads.
-- Keep `run_name` stable across `status` and `resume`.
-- Treat `run_dir` as the source of truth for the resolved local folder name.
+The job lives server-side; recover from the API:
 
-Status and resume strategy:
+1. Find the job id (match `idempotency_key` to your slug):
+   - `boltz-api <resource> list --limit 50 --format jsonl`
+2. Re-download and persist:
+   - `boltz-api download-results --id <id> --name <slug> --root-dir /tmp/boltz-runs`
+   - `scripts/persist.sh /tmp/boltz-runs/<slug>`
 
-1. Check local state (`status` action) — auto-restores from the workspace mirror if `/tmp` is empty.
-2. Retrieve remote job metadata (`retrieve` action).
-3. Resume artifacts (`resume` action) — downloads and mirrors to `/workspace`.
-4. Recover after sandbox eviction (`recover` action) — resolves `job_id` from the workspace
-   manifest or the API by `idempotency_key`, then re-downloads and mirrors. Never re-submit.
-
-Useful status commands:
-
-- Local checkpoint status:
-  - `python scripts/run.py status --action status --run-name <slug>`
-- Remote retrieve by job id:
-  - `python scripts/run.py status --action retrieve --resource sab --job-id <id>`
-- Resume downloads (mirrors to `/workspace`):
-  - `python scripts/run.py status --action resume --job-id <id> --run-name <slug>`
-- Recover after eviction (auto-resolves the job, mirrors to `/workspace`):
-  - `python scripts/run.py status --action recover --run-name <slug>`
-  - `python scripts/run.py status --action recover --run-name <slug> --job-id <id>` (skip API lookup)
-
-Recovering a lost run-name:
-
-- If the run-name/slug is unknown, list jobs first and match on `idempotency_key`:
-  - `python scripts/run.py status --action list --limit 20`
-- Then `recover`/`resume` with the discovered `--job-id`.
-
-Pagination & completeness:
-
-- `resume`/`recover` run `download-results --download-mode everything`, which follows the remote
-  result cursor and downloads the **entire** result set (concurrent workers). The complete set
-  lands under `<run_dir>/results/<result_id>/` (one folder per item, each with `metadata.json`
-  and `archive.tar.gz`).
-- To return first/top/ranked N from downloaded artifacts, enumerate the local `results/` directory
-  after download — do not page the API by hand. Reading the local mirror is complete and avoids
-  per-request limits.
-- For a quick peek without downloading archives (design/screen only), use the API-native paginated
-  endpoint: `status --action list-results --resource <r> --job-id <id> --limit <n>`
-  (or `--max-items -1` for the full set, `--after-id <id>` to page). For `sab`/`adme`, results come
-  back inline via `status --action retrieve`.
-- The job-discovery scan in `recover` uses `--max-items -1`, so the cursor-based job list is fully
-  paginated and won't miss the target job in a workspace with many runs.
-- A result set is only incomplete if `download-results` errored or the run is still `running`;
-  re-run `resume`/`recover` (idempotent) instead of paginating manually.
+A result set is only incomplete if `download-results` errored or the run is still `running`; re-run
+the download (idempotent) rather than paging by hand.

@@ -8,6 +8,23 @@ and the catalog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-22
+
+### Changed
+- Reworked `skills/boltz` to drive the official `boltz-api` CLI directly instead of a bundled runner.
+  Rewrote `SKILL.md` around a mode→resource table, three guardrails (estimate→confirm before billing;
+  persist to the S3-backed `/workspace`; recover from the API without re-submitting), and a raw-CLI cheat-sheet.
+- Simplified `skills/boltz/references` (`api.md`, `results.md`, `examples.md`) to use raw `boltz-api` commands.
+
+### Added
+- `skills/boltz/scripts/persist.sh`: S3-safe copy of a finished run directory from
+  `/tmp/boltz-runs/<slug>` to `/workspace/boltz-artifacts/boltz/<slug>/` (the `/workspace` mount is not
+  a full POSIX filesystem, so the CLI cannot download into it directly).
+
+### Removed
+- `skills/boltz/scripts/run.py` (the end-to-end runner wrapper). Workflows now use the `boltz-api` CLI
+  directly plus `persist.sh`.
+
 ## [1.0.6] - 2026-06-22
 
 ### Changed
@@ -60,7 +77,9 @@ and the catalog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 - Initial versioned release of the Fastfold AI Skills catalog.
 - Skills: `fold`, `protein_design_boltzgen`, `md_openmm_calvados`, `md_openmmdl`, `slack_report`.
 
-[Unreleased]: https://github.com/fastfold-ai/skills/compare/v1.0.5...HEAD
+[Unreleased]: https://github.com/fastfold-ai/skills/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/fastfold-ai/skills/releases/tag/v1.1.0
+[1.0.6]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.6
 [1.0.5]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.5
 [1.0.4]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.4
 [1.0.3]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.3

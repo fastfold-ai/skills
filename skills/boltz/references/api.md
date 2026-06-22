@@ -31,13 +31,13 @@ This skill covers the API-visible features exposed for BoltzMol/BoltzProt/Boltz-
 - **Boltz-2 structure + binding**
   - `sab` mode (`predictions:structure-and-binding`, model `boltz-2.1`)
 - **Operational API features**
-  - Cost estimate before submission (`--estimate-only`)
-  - Idempotent run naming (`--run-name` reused for idempotency/download naming)
-  - Resume/download recovery (`status --action resume`)
-  - Post-eviction recovery from the API without re-submitting (`status --action recover`)
-  - Paginated per-item results for design/screen (`status --action list-results`)
-  - Early stop for design/screen (`status --action stop`)
-  - Permanent data deletion (`status --action delete-data`, irreversible)
+  - Cost estimate before submission (`estimate-cost`)
+  - Idempotent run naming (`--idempotency-key`/`--name` reused per experiment)
+  - Download recovery (`download-results --id <id>`)
+  - Post-eviction recovery from the API without re-submitting (`list` + `download-results`)
+  - Paginated per-item results for design/screen (`list-results`)
+  - Early stop for design/screen (`stop`)
+  - Permanent data deletion (`delete-data`, irreversible)
 
 ## Per-Resource Action Matrix
 
@@ -56,8 +56,7 @@ CLI subcommands available per resource (verified against `boltz-api <resource> -
 Notes:
 
 - There is no `pause`/`unpause` on any resource. Lifecycle controls are `start`, `stop`
-  (design/screen only), and `delete-data`. The runner's `resume`/`recover` actions resume the
-  result *download*, not compute.
+  (design/screen only), and `delete-data`. `download-results` resumes the result *download*, not compute.
 - `sab` and `adme` are short synchronous predictions: results come back via `retrieve` (no
   `list-results`), and they cannot be stopped.
 - `delete-data` permanently deletes input/output/result data (the run record is kept with a
@@ -110,19 +109,24 @@ Notes:
   - `POST /compute/v1/protein/library-screen/{id}/delete-data`
   - `POST /compute/v1/protein/library-screen/estimate-cost`
 
-## Runner Usage Pattern
+## CLI Usage Pattern
 
-- Estimate only:
-  - `python scripts/run.py <mode> --payload payload.yaml --run-name <slug> --estimate-only`
-- Full run:
-  - `python scripts/run.py <mode> --payload payload.yaml --run-name <slug> --yes`
+Pick `<resource>` from the mapping above; reuse one `<slug>` as `--idempotency-key` and `--name`.
 
-Status/recovery (`/tmp` is ephemeral; recover from the API + `/workspace`, never by re-submitting):
+```bash
+# Estimate (never bills), then submit after approval
+boltz-api <resource> estimate-cost --input @yaml://payload.yaml      # + --model for sab/adme
+boltz-api <resource> run --input @yaml://payload.yaml --idempotency-key <slug> --name <slug> --root-dir /tmp/boltz-runs
+scripts/persist.sh /tmp/boltz-runs/<slug>                            # copy to S3-backed /workspace
 
-- `python scripts/run.py status --action status --run-name <slug>`
-- `python scripts/run.py status --action retrieve --resource sab --job-id <id>`
-- `python scripts/run.py status --action list-results --resource protein_design --job-id <id> --limit 5`
-- `python scripts/run.py status --action resume --job-id <id> --run-name <slug>`
-- `python scripts/run.py status --action recover --run-name <slug>` (auto-resolves job_id, mirrors to `/workspace`)
-- `python scripts/run.py status --action stop --resource sm_design --job-id <id>` (design/screen only)
-- `python scripts/run.py status --action delete-data --resource protein_design --job-id <id> --confirm-delete` (irreversible)
+# Inspect / lifecycle
+boltz-api <resource> retrieve --id <id> --format json
+boltz-api <resource> list --limit 20 --format jsonl
+boltz-api <resource> list-results --id <id> --format jsonl          # design/screen only
+boltz-api <resource> stop --id <id>                                 # design/screen only
+boltz-api <resource> delete-data --id <id>                         # irreversible — confirm first
+```
+
+Recovery (`/tmp` is ephemeral; recover from the API, never by re-submitting): find the id with
+`list` (match `idempotency_key`), then `download-results --id <id> --name <slug> --root-dir /tmp/boltz-runs`
+and `persist.sh`.

@@ -1,12 +1,21 @@
 # Boltz Quick Examples (Small Runs)
 
 These examples are intentionally small so users can quickly learn input/output flow.
-All payloads are API-body shaped and run through the unified script:
+All payloads are API-body shaped. Save one to a file and run it with the raw CLI, substituting the
+`<resource>` for the mode (see the table in SKILL.md / api.md):
 
-- Estimate (never billable): `python scripts/run.py <mode> --payload <file>.yaml --run-name <slug> --estimate-only`
-- Execute (billable — only after the user explicitly approves the estimate): `python scripts/run.py <mode> --payload <file>.yaml --run-name <slug> --yes`
+```bash
+# Estimate (never bills) — always run first and show the cost to the user
+boltz-api <resource> estimate-cost --input @yaml://<file>.yaml        # + --model for sab/adme
 
-Always run the estimate, show the cost to the user, and wait for explicit approval before the `--yes` execute step. Do not run both in the same turn.
+# Execute (bills) — only after the user explicitly approves the estimate
+boltz-api <resource> run --input @yaml://<file>.yaml \
+  --idempotency-key <slug> --name <slug> --root-dir /tmp/boltz-runs
+scripts/persist.sh /tmp/boltz-runs/<slug>
+```
+
+Run the estimate and wait for explicit approval before the execute step; don't run both in one turn.
+Each example below gives a payload file and its resource — plug them into the pattern above.
 
 Named targets in prompts/run names are aligned with BoltzMol/BoltzProt public materials
 (for example: ROR1, MRGPRX2, GLP2R, PknB, AMBP, IDI2, MZB1, PMVK).
@@ -51,8 +60,7 @@ num_samples: 1
 ```
 
 Commands:
-- `python scripts/run.py sab --payload payload.sab.ror1_aspirin.yaml --run-name sab-ror1-aspirin-demo --estimate-only`
-- `python scripts/run.py sab --payload payload.sab.ror1_aspirin.yaml --run-name sab-ror1-aspirin-demo --yes`
+- Resource `predictions:structure-and-binding` (`--model boltz-2.1`), payload `payload.sab.ror1_aspirin.yaml`, slug `sab-ror1-aspirin-demo` — estimate → run as in the intro.
 
 ### Example B — LC3B/GABARAP-style protein-protein check
 
@@ -76,8 +84,7 @@ num_samples: 1
 ```
 
 Commands:
-- `python scripts/run.py sab --payload payload.sab.lc3b_gabarap.yaml --run-name sab-lc3b-gabarap-demo --estimate-only`
-- `python scripts/run.py sab --payload payload.sab.lc3b_gabarap.yaml --run-name sab-lc3b-gabarap-demo --yes`
+- Resource `predictions:structure-and-binding` (`--model boltz-2.1`), payload `payload.sab.lc3b_gabarap.yaml`, slug `sab-lc3b-gabarap-demo` — estimate → run as in the intro.
 
 ## 2) Protein Design (`protein-design`, BoltzProt-1 pipeline)
 
@@ -108,8 +115,7 @@ num_proteins: 10
 ```
 
 Commands:
-- `python scripts/run.py protein-design --payload payload.protein.design.ambp.min.yaml --run-name pd-ambp-demo --estimate-only`
-- `python scripts/run.py protein-design --payload payload.protein.design.ambp.min.yaml --run-name pd-ambp-demo --yes`
+- Resource `protein:design`, payload `payload.protein.design.ambp.min.yaml`, slug `pd-ambp-demo` — estimate → run as in the intro.
 
 ### Example B — MZB1-style curated nanobody flow
 
@@ -135,8 +141,7 @@ num_proteins: 10
 ```
 
 Commands:
-- `python scripts/run.py protein-design --payload payload.protein.design.mzb1.nanobody.yaml --run-name pd-mzb1-nb-demo --estimate-only`
-- `python scripts/run.py protein-design --payload payload.protein.design.mzb1.nanobody.yaml --run-name pd-mzb1-nb-demo --yes`
+- Resource `protein:design`, payload `payload.protein.design.mzb1.nanobody.yaml`, slug `pd-mzb1-nb-demo` — estimate → run as in the intro.
 
 ## 3) Protein Library Screen (`protein-screen`, BoltzProt-1 pipeline)
 
@@ -170,8 +175,7 @@ proteins:
 ```
 
 Commands:
-- `python scripts/run.py protein-screen --payload payload.protein.screen.idi2.min.yaml --run-name ps-idi2-demo --estimate-only`
-- `python scripts/run.py protein-screen --payload payload.protein.screen.idi2.min.yaml --run-name ps-idi2-demo --yes`
+- Resource `protein:library-screen`, payload `payload.protein.screen.idi2.min.yaml`, slug `ps-idi2-demo` — estimate → run as in the intro.
 
 ### Example B — PMVK-style non-binding patch guardrail
 
@@ -200,8 +204,7 @@ proteins:
 ```
 
 Commands:
-- `python scripts/run.py protein-screen --payload payload.protein.screen.pmvk.nonbinding.yaml --run-name ps-pmvk-nonbinding-demo --estimate-only`
-- `python scripts/run.py protein-screen --payload payload.protein.screen.pmvk.nonbinding.yaml --run-name ps-pmvk-nonbinding-demo --yes`
+- Resource `protein:library-screen`, payload `payload.protein.screen.pmvk.nonbinding.yaml`, slug `ps-pmvk-nonbinding-demo` — estimate → run as in the intro.
 
 ## 4) Small-Molecule Design (`sm-design`, BoltzMol-1 pipeline)
 
@@ -224,8 +227,7 @@ num_molecules: 10
 ```
 
 Commands:
-- `python scripts/run.py sm-design --payload payload.sm.design.ror1.min.yaml --run-name smd-ror1-demo --estimate-only`
-- `python scripts/run.py sm-design --payload payload.sm.design.ror1.min.yaml --run-name smd-ror1-demo --yes`
+- Resource `small-molecule:design`, payload `payload.sm.design.ror1.min.yaml`, slug `smd-ror1-demo` — estimate → run as in the intro.
 
 ### Example B — MRGPRX2-style filtered generation
 
@@ -254,8 +256,7 @@ num_molecules: 10
 ```
 
 Commands:
-- `python scripts/run.py sm-design --payload payload.sm.design.mrgprx2.filters.yaml --run-name smd-mrgprx2-filters-demo --estimate-only`
-- `python scripts/run.py sm-design --payload payload.sm.design.mrgprx2.filters.yaml --run-name smd-mrgprx2-filters-demo --yes`
+- Resource `small-molecule:design`, payload `payload.sm.design.mrgprx2.filters.yaml`, slug `smd-mrgprx2-filters-demo` — estimate → run as in the intro.
 
 ## 5) Small-Molecule Library Screen (`sm-screen`, BoltzMol-1 pipeline)
 
@@ -282,8 +283,7 @@ molecules:
 ```
 
 Commands:
-- `python scripts/run.py sm-screen --payload payload.sm.screen.pknb.min.yaml --run-name sms-pknb-demo --estimate-only`
-- `python scripts/run.py sm-screen --payload payload.sm.screen.pknb.min.yaml --run-name sms-pknb-demo --yes`
+- Resource `small-molecule:library-screen`, payload `payload.sm.screen.pknb.min.yaml`, slug `sms-pknb-demo` — estimate → run as in the intro.
 
 ### Example B — GLP2R-style screening with extra filters
 
@@ -308,8 +308,7 @@ molecule_filters:
 ```
 
 Commands:
-- `python scripts/run.py sm-screen --payload payload.sm.screen.glp2r.filters.yaml --run-name sms-glp2r-filters-demo --estimate-only`
-- `python scripts/run.py sm-screen --payload payload.sm.screen.glp2r.filters.yaml --run-name sms-glp2r-filters-demo --yes`
+- Resource `small-molecule:library-screen`, payload `payload.sm.screen.glp2r.filters.yaml`, slug `sms-glp2r-filters-demo` — estimate → run as in the intro.
 
 ## 6) ADME (`adme`)
 
@@ -328,8 +327,7 @@ molecules:
 ```
 
 Commands:
-- `python scripts/run.py adme --payload payload.adme.min.yaml --run-name adme-min-demo --estimate-only`
-- `python scripts/run.py adme --payload payload.adme.min.yaml --run-name adme-min-demo --yes`
+- Resource `predictions:adme` (`--model adme-v1`), payload `payload.adme.min.yaml`, slug `adme-min-demo` — estimate → run as in the intro.
 
 ### Example B — four-molecule ADME triage panel
 
@@ -350,19 +348,19 @@ molecules:
 ```
 
 Commands:
-- `python scripts/run.py adme --payload payload.adme.batch.yaml --run-name adme-batch-demo --estimate-only`
-- `python scripts/run.py adme --payload payload.adme.batch.yaml --run-name adme-batch-demo --yes`
+- Resource `predictions:adme` (`--model adme-v1`), payload `payload.adme.batch.yaml`, slug `adme-batch-demo` — estimate → run as in the intro.
 
 ## 7) Status / Recovery / Stop (`status`)
 
-### Example A — retrieve + resume by job ID
+### Example A — retrieve + download by job ID
 
 User prompt:
 - "Recover results for this existing job id."
 
 Commands:
-- `python scripts/run.py status --action retrieve --resource sm_screen --job-id <job-id>`
-- `python scripts/run.py status --action resume --job-id <job-id> --run-name sms-pknb-demo`
+- `boltz-api small-molecule:library-screen retrieve --id <job-id> --format json`
+- `boltz-api download-results --id <job-id> --name sms-pknb-demo --root-dir /tmp/boltz-runs`
+- `scripts/persist.sh /tmp/boltz-runs/sms-pknb-demo`
 
 ### Example B — stop a running design/screen
 
@@ -370,5 +368,5 @@ User prompt:
 - "Stop this running screen now and keep partial outputs."
 
 Commands:
-- `python scripts/run.py status --action stop --resource sm_design --job-id <job-id>`
-- `python scripts/run.py status --action stop --resource protein_screen --job-id <job-id>`
+- `boltz-api small-molecule:design stop --id <job-id>`
+- `boltz-api protein:library-screen stop --id <job-id>`

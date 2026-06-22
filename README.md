@@ -22,8 +22,8 @@ fastfold skills add fastfold-ai/skills@skills/fold          # a single skill
 ```
 
 These are the same catalog skills used by the [Fastfold Agent CLI](https://github.com/fastfold-ai/fastfold-agent-cli). See:
-- Agent CLI docs: [docs.fastfold.ai/agents/cli](https://docs.fastfold.ai/agents/cli)
-- Agent CLI skills docs: [docs.fastfold.ai/agents/cli/skills](https://docs.fastfold.ai/agents/cli/skills)
+- Skills docs: [docs.fastfold.ai/agents/skills](https://docs.fastfold.ai/agents/skills)
+- Use skills with the Fastfold Agent CLI: [docs.fastfold.ai/agents/cli](https://docs.fastfold.ai/agents/cli)
 
 ## Usage
 
@@ -59,34 +59,34 @@ Install a single skill with `fastfold skills add fastfold-ai/skills@skills/<skil
 
 ### boltz
 
-Unified Boltz API automation through one script entrypoint for:
+Drives the official `boltz-api` CLI directly for:
 
 - structure-and-binding
 - protein design and protein library screen
 - small-molecule design and library screen
 - ADME
-- status/retrieve/resume flows
+- status / retrieve / list / recovery flows
 
 **Use when:**
 - The user explicitly wants direct Boltz API execution (`boltz-api` flows)
-- You need estimate -> submit -> wait/download -> summary in one run
-- You need deterministic run recovery and artifact persistence
+- You need an estimate -> confirm -> submit -> wait/download flow
+- You need run recovery and durable artifact persistence
 
 **Key runtime behavior:**
-- Auto-installs `boltz-api` via the official Boltz installer when missing (same method used in Modal sandboxes and Fastfold Agent CLI setup)
-- Uses `/tmp/boltz-runs` for checkpoint-safe runtime downloads
-- Mirrors finalized run directories to `/workspace/boltz-artifacts/boltz/<run_dir_name>/`
-- Returns deterministic summary fields including `run_dir` and `persistent_run_dir`
+- Always estimates cost and waits for explicit user approval before any billable submit
+- Installs `boltz-api` via the official Boltz installer when missing (`curl -fsSL https://install.boltz.bio/boltz-api/install.sh | sh`)
+- Downloads into `/tmp/boltz-runs/<slug>` (the `/workspace` mount is S3-backed, not POSIX), then persists with `scripts/persist.sh`
+- Recovers from the API by `idempotency_key` instead of re-submitting a billable job
 
 **Scripts:**
-- `run.py` – unified end-to-end runner and status/recovery helper
+- `persist.sh` – S3-safe copy of a finished run directory from `/tmp/boltz-runs/<slug>` to `/workspace/boltz-artifacts/boltz/<slug>/`
 
 **Example prompts (small runnable examples):**
 - "Run a simple ROR1-style Boltz-2 structure-and-binding smoke test with aspirin; estimate first, then execute."
 - "Run a minimal AMBP-style protein design job with 10 proteins and return top metrics/artifact paths."
-- "Screen aspirin, ibuprofen, and caffeine against a PknB-style target with `sm-screen` and summarize top hits."
+- "Screen aspirin, ibuprofen, and caffeine against a PknB-style target with small-molecule library screen and summarize top hits."
 - "Run ADME quick triage for aspirin, ibuprofen, phenol, and caffeine."
-- "Recover this job with `status retrieve`, then resume downloads with my previous run name."
+- "Recover my earlier Boltz job by idempotency key, re-download results, and persist them to workspace."
 
 Reference examples:
 - [skills/boltz/references/examples.md](https://github.com/fastfold-ai/skills/blob/main/skills/boltz/references/examples.md)
