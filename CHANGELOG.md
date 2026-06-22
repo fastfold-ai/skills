@@ -8,6 +8,16 @@ and the catalog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-06-22
+
+### Changed
+
+- `skills/boltz/scripts/run.py` now auto-installs `boltz-api` with the official Boltz
+  installer (`curl -fsSL https://install.boltz.bio/boltz-api/install.sh | sh`) when
+  the CLI is missing, matching Modal sandbox and Fastfold Agent CLI bootstrap behavior.
+- Updated `skills/boltz/SKILL.md` and catalog README to require bundled-runner bootstrap
+  instead of manual/pip CLI installation.
+
 ## [1.0.4] - 2026-06-20
 
 ### Added
@@ -44,7 +54,8 @@ and the catalog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 - Initial versioned release of the Fastfold AI Skills catalog.
 - Skills: `fold`, `protein_design_boltzgen`, `md_openmm_calvados`, `md_openmmdl`, `slack_report`.
 
-[Unreleased]: https://github.com/fastfold-ai/skills/compare/v1.0.4...HEAD
+[Unreleased]: https://github.com/fastfold-ai/skills/compare/v1.0.5...HEAD
+[1.0.5]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.5
 [1.0.4]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.4
 [1.0.3]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.3
 [1.0.2]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.2

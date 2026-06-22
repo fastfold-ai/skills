@@ -73,6 +73,7 @@ Unified Boltz API automation through one script entrypoint for:
 - You need deterministic run recovery and artifact persistence
 
 **Key runtime behavior:**
+- Auto-installs `boltz-api` via the official Boltz installer when missing (same method used in Modal sandboxes and Fastfold Agent CLI setup)
 - Uses `/tmp/boltz-runs` for checkpoint-safe runtime downloads
 - Mirrors finalized run directories to `/workspace/boltz-artifacts/boltz/<run_dir_name>/`
 - Returns deterministic summary fields including `run_dir` and `persistent_run_dir`

@@ -7,15 +7,91 @@ import argparse
 import json
 import os
 import shlex
+import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 
 ROOT = "/tmp/boltz-runs"
 PERSIST_ROOT = "/workspace/boltz-artifacts/boltz"
+BOLTZ_INSTALL_SCRIPT = (
+    "set -euo pipefail; curl -fsSL https://install.boltz.bio/boltz-api/install.sh | sh"
+)
+BOLTZ_API_BIN = "boltz-api"
+
+
+def find_boltz_cli() -> str | None:
+    """Return the first available boltz-api executable path."""
+    in_path = shutil.which("boltz-api")
+    if in_path:
+        return in_path
+    for candidate in (
+        Path.home() / ".local" / "bin" / "boltz-api",
+        Path.home() / ".boltz" / "bin" / "boltz-api",
+    ):
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return str(candidate)
+    return None
+
+
+def ensure_boltz_cli() -> str:
+    """Install boltz-api with the official installer when missing."""
+    global BOLTZ_API_BIN
+
+    existing = find_boltz_cli()
+    if existing:
+        BOLTZ_API_BIN = existing
+        return existing
+
+    if not shutil.which("curl") or not shutil.which("sh"):
+        raise SystemExit(
+            "boltz-api is not available and automatic install requires curl + sh. "
+            "Install manually: curl -fsSL https://install.boltz.bio/boltz-api/install.sh | sh"
+        )
+
+    print("boltz-api not found; installing via official Boltz installer...", file=sys.stderr)
+    proc = subprocess.run(
+        ["sh", "-lc", BOLTZ_INSTALL_SCRIPT],
+        text=True,
+        capture_output=True,
+        timeout=180,
+    )
+    if proc.stdout:
+        print(proc.stdout, end="")
+    if proc.stderr:
+        print(proc.stderr, end="", file=sys.stderr)
+    if proc.returncode != 0:
+        detail = (proc.stderr or proc.stdout or "").strip()
+        detail = detail.splitlines()[-1] if detail else "installer exited with a non-zero code"
+        raise SystemExit(
+            "boltz-api automatic install failed: "
+            f"{detail}. Retry manually: curl -fsSL https://install.boltz.bio/boltz-api/install.sh | sh"
+        )
+
+    installed = find_boltz_cli()
+    if not installed:
+        raise SystemExit(
+            "boltz-api installer completed, but executable was not found. "
+            "Ensure ~/.local/bin is on PATH or rerun the official installer."
+        )
+
+    version_proc = subprocess.run(
+        [installed, "--version"],
+        text=True,
+        capture_output=True,
+        timeout=10,
+    )
+    version = (version_proc.stdout or version_proc.stderr or "").strip().splitlines()
+    version_text = version[0] if version else "unknown version"
+    print(f"Installed boltz-api at {installed} ({version_text})", file=sys.stderr)
+    BOLTZ_API_BIN = installed
+    return installed
 
 
 def run(cmd: list[str]) -> str:
+    if cmd and cmd[0] == "boltz-api":
+        cmd = [BOLTZ_API_BIN, *cmd[1:]]
     print("$ " + " ".join(shlex.quote(x) for x in cmd), file=sys.stderr)
     proc = subprocess.run(cmd, text=True, capture_output=True)
     if proc.stdout:
@@ -240,6 +316,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    ensure_boltz_cli()
     args = build_parser().parse_args()
     if args.mode == "status":
         if args.action == "status" and not args.run_name:
