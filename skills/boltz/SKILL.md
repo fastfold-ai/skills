@@ -43,11 +43,11 @@ Coverage alignment with new Boltz releases:
 
 ## Boltz API CLI bootstrap
 
-- Modal sandboxes and Fastfold Agent CLI setup preinstall `boltz-api` via the official installer:
+- Official install (when needed):
   - `curl -fsSL https://install.boltz.bio/boltz-api/install.sh | sh`
-- Local/other runtimes may not have the CLI yet.
+- The runtime may not have `boltz-api` installed yet.
 - Always run workflows through `python scripts/run.py ...` (not raw `boltz-api ...`).
-- The bundled runner auto-installs `boltz-api` with that same official installer when missing, then resolves the binary from:
+- The bundled runner auto-installs `boltz-api` with the official installer when missing, then resolves the binary from:
   - `PATH`
   - `~/.local/bin/boltz-api`
   - `~/.boltz/bin/boltz-api`

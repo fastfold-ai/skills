@@ -8,6 +8,12 @@ and the catalog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-06-22
+
+### Changed
+
+- Generalized `skills/boltz/SKILL.md` CLI bootstrap wording to be runtime-agnostic (no product-specific install references).
+
 ## [1.0.5] - 2026-06-22
 
 ### Changed
