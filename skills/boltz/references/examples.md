@@ -3,8 +3,10 @@
 These examples are intentionally small so users can quickly learn input/output flow.
 All payloads are API-body shaped and run through the unified script:
 
-- Estimate: `python scripts/run.py <mode> --payload <file>.yaml --run-name <slug> --estimate-only`
-- Execute: `python scripts/run.py <mode> --payload <file>.yaml --run-name <slug> --yes`
+- Estimate (never billable): `python scripts/run.py <mode> --payload <file>.yaml --run-name <slug> --estimate-only`
+- Execute (billable — only after the user explicitly approves the estimate): `python scripts/run.py <mode> --payload <file>.yaml --run-name <slug> --yes`
+
+Always run the estimate, show the cost to the user, and wait for explicit approval before the `--yes` execute step. Do not run both in the same turn.
 
 Named targets in prompts/run names are aligned with BoltzMol/BoltzProt public materials
 (for example: ROR1, MRGPRX2, GLP2R, PknB, AMBP, IDI2, MZB1, PMVK).

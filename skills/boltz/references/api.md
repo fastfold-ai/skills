@@ -34,7 +34,34 @@ This skill covers the API-visible features exposed for BoltzMol/BoltzProt/Boltz-
   - Cost estimate before submission (`--estimate-only`)
   - Idempotent run naming (`--run-name` reused for idempotency/download naming)
   - Resume/download recovery (`status --action resume`)
+  - Post-eviction recovery from the API without re-submitting (`status --action recover`)
+  - Paginated per-item results for design/screen (`status --action list-results`)
   - Early stop for design/screen (`status --action stop`)
+  - Permanent data deletion (`status --action delete-data`, irreversible)
+
+## Per-Resource Action Matrix
+
+CLI subcommands available per resource (verified against `boltz-api <resource> --help`):
+
+| Subcommand | sab | adme | protein-design | protein-screen | sm-design | sm-screen |
+| --- | --- | --- | --- | --- | --- | --- |
+| `estimate-cost` | yes | yes | yes | yes | yes | yes |
+| `start` / `run` | yes | yes | yes | yes | yes | yes |
+| `retrieve` | yes | yes | yes | yes | yes | yes |
+| `list` | yes | yes | yes | yes | yes | yes |
+| `list-results` | no | no | yes | yes | yes | yes |
+| `stop` | no | no | yes | yes | yes | yes |
+| `delete-data` | yes | yes | yes | yes | yes | yes |
+
+Notes:
+
+- There is no `pause`/`unpause` on any resource. Lifecycle controls are `start`, `stop`
+  (design/screen only), and `delete-data`. The runner's `resume`/`recover` actions resume the
+  result *download*, not compute.
+- `sab` and `adme` are short synchronous predictions: results come back via `retrieve` (no
+  `list-results`), and they cannot be stopped.
+- `delete-data` permanently deletes input/output/result data (the run record is kept with a
+  `data_deleted_at` timestamp). It is irreversible; the runner gates it behind `--confirm-delete`.
 
 ## Raw HTTP Endpoints (Reference Contract)
 
@@ -90,9 +117,12 @@ This skill covers the API-visible features exposed for BoltzMol/BoltzProt/Boltz-
 - Full run:
   - `python scripts/run.py <mode> --payload payload.yaml --run-name <slug> --yes`
 
-Status/recovery:
+Status/recovery (`/tmp` is ephemeral; recover from the API + `/workspace`, never by re-submitting):
 
 - `python scripts/run.py status --action status --run-name <slug>`
 - `python scripts/run.py status --action retrieve --resource sab --job-id <id>`
+- `python scripts/run.py status --action list-results --resource protein_design --job-id <id> --limit 5`
 - `python scripts/run.py status --action resume --job-id <id> --run-name <slug>`
-- `python scripts/run.py status --action stop --resource sm_design --job-id <id>`
+- `python scripts/run.py status --action recover --run-name <slug>` (auto-resolves job_id, mirrors to `/workspace`)
+- `python scripts/run.py status --action stop --resource sm_design --job-id <id>` (design/screen only)
+- `python scripts/run.py status --action delete-data --resource protein_design --job-id <id> --confirm-delete` (irreversible)
