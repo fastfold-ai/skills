@@ -8,6 +8,19 @@ and the catalog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-06-22
+
+### Changed
+
+- Made `skills/boltz` runtime-aware: results go to a project-relative output dir
+  (`${OUTPUT_DIR:-./outputs}/boltz`) on local agents (Fastfold Agent CLI, Claude Code, Codex, Cursor),
+  and to the S3-backed `/workspace` via `scripts/persist.sh` only on hosted sandboxes. Updated
+  `SKILL.md` and references (`api.md`, `results.md`, `examples.md`); `persist.sh` is now marked
+  hosted-sandbox-only.
+- Rewrote `README.md`: clearer positioning, a compute-providers/API-keys inventory
+  (`FASTFOLD_API_KEY` for Fastfold Cloud, `BOLTZ_API_KEY` for the Boltz API), `BOLTZ_API_KEY` setup,
+  and links to the skills and Agent CLI docs.
+
 ## [1.1.0] - 2026-06-22
 
 ### Changed
@@ -77,7 +90,8 @@ and the catalog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 - Initial versioned release of the Fastfold AI Skills catalog.
 - Skills: `fold`, `protein_design_boltzgen`, `md_openmm_calvados`, `md_openmmdl`, `slack_report`.
 
-[Unreleased]: https://github.com/fastfold-ai/skills/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/fastfold-ai/skills/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/fastfold-ai/skills/releases/tag/v1.1.1
 [1.1.0]: https://github.com/fastfold-ai/skills/releases/tag/v1.1.0
 [1.0.6]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.6
 [1.0.5]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.5

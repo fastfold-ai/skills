@@ -1,10 +1,10 @@
 # Fastfold AI Skills
 
-A collection of skills for AI agents. Skills are packaged instructions and scripts that extend agent capabilities for the FastFold Cloud APIs (folding, protein design, molecular dynamics, reporting).
+Open skills where computational scientists and AI agents work together, with well-tested integrations.
 
-Skills follow the [Agent Skills](https://agentskills.io/) format. Each skill is self-contained and portable: its scripts use only the Python standard library and are invoked directly as `python scripts/<name>.py ...` from the skill directory, so they run consistently wherever the skill is installed.
+[![skills.sh](https://skills.sh/b/fastfold-ai/skills)](https://www.skills.sh/fastfold-ai/skills)
 
-Browse the skills catalog in Fastfold Cloud: [cloud.fastfold.ai/agents/skills](https://cloud.fastfold.ai/agents/skills).
+> Run them anywhere. Locally with the [Fastfold Agent CLI](https://docs.fastfold.ai/agents/cli) on your own compute, or in the [Fastfold Cloud Agent](https://cloud.fastfold.ai/agents/skills), where they run in [Modal](https://modal.com/) sandboxes with a persistent filesystem workspace.
 
 ## Install
 
@@ -31,7 +31,7 @@ Once installed, the agent uses a skill when the task matches its description and
 
 **Example:**
 
-With `.env` set up (or `FASTFOLD_API_KEY` exported), run scripts without passing the key each time. Your agent can help you set this up—see [Setting your FastFold API key](#setting-your-fastfold-api-key) below. 
+With `.env` set up (or the key exported), run scripts without passing the key each time. Your agent can help you set this up. See [Setting your API keys](#setting-your-api-keys) below. 
 
 
 Just Ask:
@@ -40,6 +40,15 @@ Just Ask:
 Use Boltz-2 in Fastfold with affinity property to the ligand. Fold this protein: PQITLWQRPLVTIKIGGQLKEALLDTGADDTVLEEMSLPGRWKPKMIGGIGGFIKVRQYDQILIEICGHKAIGTVLVGPTPVNIIGRNLLTQIGCTLNF and this ligand: CC1CN(CC(C1)NC(=O)C2=CC=CC=C2N)C(=O)NC(C)(C)C
 ```
 
+
+## Compute providers & API keys
+
+These skills run against two compute providers. Set the key for whichever skills you use (a local `.env` is easiest), then see [Setting your API keys](#setting-your-api-keys).
+
+| Provider | API key | Used by | Get a key |
+|---|---|---|---|
+| Fastfold Cloud (Jobs & Workflows API) | `FASTFOLD_API_KEY` | `fold`, `protein_design_boltzgen`, `md_openmm_calvados`, `md_openmmdl`, `slack_report` | [cloud.fastfold.ai/api-keys](https://cloud.fastfold.ai/api-keys) |
+| Boltz API | `BOLTZ_API_KEY` | `boltz` | [Boltz Console](https://api.boltz.bio/console), or enable the [Fastfold Boltz provider](https://cloud.fastfold.ai/integrations/providers?provider=boltz) |
 
 ## Available Skills
 
@@ -184,22 +193,25 @@ Generate Mermaid diagrams on demand and proactively for multi-step workflows.
 
 **Requires:** No API key.
 
-### Setting your FastFold API key
+## Setting your API keys
 
-Scripts automatically read `FASTFOLD_API_KEY` from a **`.env`** file in the project (current directory or any parent), so you don't need to export it in the shell.
+Skills read keys from a **`.env`** file in the project (current directory or any parent), so you don't need to export them in the shell. Set only the key(s) for the providers you use (see [Compute providers & API keys](#compute-providers--api-keys)).
 
-**Option A — Use a `.env` file (recommended)**
+**Fastfold Cloud, `FASTFOLD_API_KEY`** (skills: `fold`, `protein_design_boltzgen`, `md_openmm_calvados`, `md_openmmdl`, `slack_report`)
 
 1. **Copy the template:** `cp skills/fold/references/.env.example .env`
-2. **Open `.env`** and paste your API key after the `=`:  
-   `FASTFOLD_API_KEY=sk-your-actual-key-here`
-3. **Save.** Scripts will load the key when you run them from this repo or any subdirectory.
+2. **Add your key:** `FASTFOLD_API_KEY=sk-your-actual-key-here`
+3. Get a key at [Fastfold API Keys](https://cloud.fastfold.ai/api-keys).
 
-Get a key at [FastFold API Keys](https://cloud.fastfold.ai/api-keys). **Do not commit `.env`** (it's in `.gitignore`).
-Do not paste API keys in chat; keep secrets in local `.env` only.
+**Boltz API, `BOLTZ_API_KEY`** (skill: `boltz`)
 
-**Option B — Export in the shell:** `export FASTFOLD_API_KEY="sk-..."`  
-Environment variables take precedence over `.env`.
+1. **Add to the same `.env`:** `BOLTZ_API_KEY=sk-your-boltz-key-here`
+2. Create or get a key at the [Boltz Console](https://api.boltz.bio/console), or enable the provider in [Fastfold Cloud](https://cloud.fastfold.ai/integrations/providers?provider=boltz).
+3. In a hosted sandbox, set it as an environment variable and restart the session so it becomes visible.
+
+**Shell alternative:** `export FASTFOLD_API_KEY="sk-..."` or `export BOLTZ_API_KEY="sk-..."`. Environment variables take precedence over `.env`.
+
+**Do not commit `.env`** (it's in `.gitignore`), and don't paste keys in chat. Keep secrets in local `.env` only.
 
 ## License
 

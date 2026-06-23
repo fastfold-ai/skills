@@ -9,9 +9,10 @@ All payloads are API-body shaped. Save one to a file and run it with the raw CLI
 boltz-api <resource> estimate-cost --input @yaml://<file>.yaml        # + --model for sab/adme
 
 # Execute (bills) — only after the user explicitly approves the estimate
+# <root>: local agent → "${OUTPUT_DIR:-./outputs}/boltz"; hosted sandbox → /tmp/boltz-runs (then persist.sh)
 boltz-api <resource> run --input @yaml://<file>.yaml \
-  --idempotency-key <slug> --name <slug> --root-dir /tmp/boltz-runs
-scripts/persist.sh /tmp/boltz-runs/<slug>
+  --idempotency-key <slug> --name <slug> --root-dir <root>
+# hosted sandbox only: scripts/persist.sh /tmp/boltz-runs/<slug>
 ```
 
 Run the estimate and wait for explicit approval before the execute step; don't run both in one turn.
@@ -357,10 +358,10 @@ Commands:
 User prompt:
 - "Recover results for this existing job id."
 
-Commands:
+Commands (`<root>`: local agent → `"${OUTPUT_DIR:-./outputs}/boltz"`; hosted sandbox → `/tmp/boltz-runs`):
 - `boltz-api small-molecule:library-screen retrieve --id <job-id> --format json`
-- `boltz-api download-results --id <job-id> --name sms-pknb-demo --root-dir /tmp/boltz-runs`
-- `scripts/persist.sh /tmp/boltz-runs/sms-pknb-demo`
+- `boltz-api download-results --id <job-id> --name sms-pknb-demo --root-dir <root>`
+- hosted sandbox only: `scripts/persist.sh /tmp/boltz-runs/sms-pknb-demo`
 
 ### Example B — stop a running design/screen
 

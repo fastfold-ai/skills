@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Persist a finished Boltz run directory from POSIX /tmp to the S3-backed /workspace mirror.
 #
+# HOSTED SANDBOX ONLY. On a local agent (e.g. Fastfold Agent CLI) there is no S3-backed /workspace —
+# download straight into the agent output dir ("${OUTPUT_DIR:-./outputs}/boltz") and skip this script.
+#
 # /workspace is not a full POSIX filesystem, so `cp -a` / direct CLI downloads into it can fail
 # on metadata ops. Stream with tar and skip timestamp/permission preservation instead.
 #

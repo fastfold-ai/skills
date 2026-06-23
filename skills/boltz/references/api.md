@@ -112,12 +112,15 @@ Notes:
 ## CLI Usage Pattern
 
 Pick `<resource>` from the mapping above; reuse one `<slug>` as `--idempotency-key` and `--name`.
+Set `<root>` by runtime — local agent (Fastfold Agent CLI): `"${OUTPUT_DIR:-./outputs}/boltz"`;
+hosted sandbox with S3-backed `/workspace`: `/tmp/boltz-runs` (then `persist.sh`). See
+[results.md](results.md) for the full rule.
 
 ```bash
 # Estimate (never bills), then submit after approval
 boltz-api <resource> estimate-cost --input @yaml://payload.yaml      # + --model for sab/adme
-boltz-api <resource> run --input @yaml://payload.yaml --idempotency-key <slug> --name <slug> --root-dir /tmp/boltz-runs
-scripts/persist.sh /tmp/boltz-runs/<slug>                            # copy to S3-backed /workspace
+boltz-api <resource> run --input @yaml://payload.yaml --idempotency-key <slug> --name <slug> --root-dir <root>
+# hosted sandbox only: scripts/persist.sh /tmp/boltz-runs/<slug>     # copy to S3-backed /workspace
 
 # Inspect / lifecycle
 boltz-api <resource> retrieve --id <id> --format json
@@ -127,6 +130,6 @@ boltz-api <resource> stop --id <id>                                 # design/scr
 boltz-api <resource> delete-data --id <id>                         # irreversible — confirm first
 ```
 
-Recovery (`/tmp` is ephemeral; recover from the API, never by re-submitting): find the id with
-`list` (match `idempotency_key`), then `download-results --id <id> --name <slug> --root-dir /tmp/boltz-runs`
-and `persist.sh`.
+Recovery (recover from the API, never by re-submitting — needed on a hosted sandbox after eviction or
+any time the local run dir is gone): find the id with `list` (match `idempotency_key`), then
+`download-results --id <id> --name <slug> --root-dir <root>` (and `persist.sh` only on a hosted sandbox).

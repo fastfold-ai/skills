@@ -39,17 +39,27 @@ Mode → CLI resource:
    billable `start`/`run` after they explicitly approve. Estimates never bill. A design/screen run
    can be stopped early (`stop`) to cap spend; `sab`/`adme` are short and cannot be stopped. There is
    no pause/resume of compute.
-2. **`/workspace` is S3-backed, not POSIX — the CLI cannot download into it directly.** Download to
-   `/tmp/boltz-runs/<slug>`, then copy to the persistent workspace with `scripts/persist.sh`. Treat
-   `/tmp` as ephemeral (wiped on sandbox eviction); persist anything worth keeping.
-3. **Recover from the API, never re-submit.** The job lives server-side. If `/tmp` is gone, find the
-   job with `list` (match `idempotency_key`) and re-`download-results` by id. Never re-run a billable
-   submit just to fetch results.
+2. **Save results to a durable location — where depends on your runtime (pick one).**
+   - **Local agent (Fastfold Agent CLI, Claude Code, Codex, Cursor, or any local machine):** the
+     filesystem is plain POSIX and persists across the session. Download straight into a project-relative
+     output dir — use `--root-dir "${OUTPUT_DIR:-./outputs}/boltz"` (Fastfold Agent CLI sets `OUTPUT_DIR`;
+     other agents fall back to `./outputs/boltz`). No copy step; **don't** use `persist.sh`.
+   - **Hosted sandbox with an S3-backed `/workspace`:** the CLI can't download into `/workspace`
+     directly (not a full POSIX filesystem), and `/tmp` is ephemeral (wiped on eviction). Download to
+     `/tmp/boltz-runs/<slug>`, then copy to `/workspace` with `scripts/persist.sh`.
+   - If unsure: `$OUTPUT_DIR` set or a writable `./outputs` ⇒ local agent; a `/workspace` mount ⇒
+     hosted sandbox.
+3. **Recover from the API, never re-submit.** The job lives server-side. If the local run dir is gone,
+   find the job with `list` (match `idempotency_key`) and re-`download-results` by id. Never re-run a
+   billable submit just to fetch results.
 
 ## CLI cheat-sheet
 
 Pick `<resource>` from the table above; reuse one `<slug>` per experiment as both `--idempotency-key`
 and `--name`. Payloads are passed as files via `@yaml://payload.yaml`.
+
+Set `<root>` per rule 2 — local agent: `"${OUTPUT_DIR:-./outputs}/boltz"`; hosted sandbox:
+`/tmp/boltz-runs` (then `persist.sh`).
 
 ```bash
 # Estimate (never bills)
@@ -57,14 +67,14 @@ boltz-api <resource> estimate-cost --input @yaml://payload.yaml        # + --mod
 
 # Submit + wait + download (after the user approves)
 boltz-api <resource> run --input @yaml://payload.yaml \
-  --idempotency-key <slug> --name <slug> --root-dir /tmp/boltz-runs
-scripts/persist.sh /tmp/boltz-runs/<slug>                              # copy to /workspace
+  --idempotency-key <slug> --name <slug> --root-dir <root>
+# hosted sandbox only: scripts/persist.sh /tmp/boltz-runs/<slug>       # copy to /workspace
 
 # Or submit async, then poll + download later
 boltz-api <resource> start --input @yaml://payload.yaml --idempotency-key <slug>   # prints job id
 boltz-api <resource> retrieve --id <id> --format json                 # status / progress
-boltz-api download-results --id <id> --name <slug> --root-dir /tmp/boltz-runs
-scripts/persist.sh /tmp/boltz-runs/<slug>
+boltz-api download-results --id <id> --name <slug> --root-dir <root>
+# hosted sandbox only: scripts/persist.sh /tmp/boltz-runs/<slug>
 
 # Inspect / enumerate
 boltz-api <resource> list --limit 20 --format jsonl                    # find jobs by idempotency_key
@@ -77,10 +87,11 @@ boltz-api <resource> delete-data --id <id>                            # permanen
 ```
 
 Notes:
-- `run`/`download-results` fetch the **complete** result set into `/tmp/boltz-runs/<slug>/results/<result_id>/`.
+- `run`/`download-results` fetch the **complete** result set into `<root>/<slug>/results/<result_id>/`.
   To return top/first N, read that directory (each item has `metadata.json`), or use `list-results`.
-- After eviction, recover with: `boltz-api <resource> list --limit 50 --format jsonl` to find the id,
-  then `download-results --id <id> --name <slug> --root-dir /tmp/boltz-runs` and `persist.sh`.
+- Recover after losing the local run dir: `boltz-api <resource> list --limit 50 --format jsonl` to find
+  the id, then `download-results --id <id> --name <slug> --root-dir <root>` (and `persist.sh` only on a
+  hosted sandbox).
 
 ## Payloads
 
