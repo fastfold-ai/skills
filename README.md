@@ -6,9 +6,11 @@ Open skills where computational scientists and AI agents work together, with wel
 
 > Run them anywhere. Locally with the [Fastfold Agent CLI](https://docs.fastfold.ai/agents/cli) on your own compute, or in the [Fastfold Cloud Agent](https://cloud.fastfold.ai/agents/skills), where they run in [Modal](https://modal.com/) sandboxes with a persistent filesystem workspace.
 
+Built on the open [Agent Skills](https://www.skills.sh/) ecosystem from Vercel, so they work in any compatible agent: Claude Code, Cursor, Codex, GitHub Copilot, Gemini, the Fastfold Agent CLI, and [many more](https://www.skills.sh/).
+
 ## Install
 
-Install all skills with the Skills CLI (Node/`npx`):
+Install all skills with the open [Skills CLI](https://www.skills.sh/) (Node/`npx`), which works across every supported agent:
 
 ```bash
 npx skills add fastfold-ai/skills
