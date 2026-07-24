@@ -8,6 +8,16 @@ and the catalog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-07-24
+
+### Changed
+
+- `fold`: require downloading into the chat Files panel with
+  `collect_artifacts.py … --download-dir "$SANDWALK_SESSION_WORKSPACE/artifacts/fold/<job_id>"`
+  (or `download_cif.py --dir …`). Link-only `--json` must not be treated as
+  “artifacts saved”; do not mark the save step complete until files exist
+  under the session workspace.
+
 ## [1.1.2] - 2026-07-24
 
 ### Changed

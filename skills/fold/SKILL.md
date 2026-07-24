@@ -68,11 +68,15 @@ Do **not** `find` / `locate` / hardcode `~/.sandwalk/...` for scripts.
 - **Fetch full results payload (default):** `python scripts/fetch_results.py <job_id> --json`
 - **Fetch concise summary (optional):** `python scripts/fetch_results.py <job_id>`
 - **Collect all artifact links consistently (all models):** `python scripts/collect_artifacts.py <job_id> --json`
-- **Collect + safely download all artifacts:** `python scripts/collect_artifacts.py <job_id> --download-dir /workspace/fastfold-artifacts/fold/<job_id> --json`
-- **Download CIF:** `python scripts/download_cif.py <job_id> [--out output.cif]`
+- **Collect + download into this chat’s Files panel (required on Sandwalk):**  
+  `python3 scripts/collect_artifacts.py <job_id> --download-dir "$SANDWALK_SESSION_WORKSPACE/artifacts/fold/<job_id>" --json`  
+  Listing links alone (`--json` without `--download-dir`) does **not** put files in the UI.
+- **Download CIF:** `python scripts/download_cif.py <job_id> --dir "$SANDWALK_SESSION_WORKSPACE/artifacts/fold/<job_id>"`
 - **Viewer link:** `python scripts/get_viewer_link.py <job_id>` (from this skill’s `scripts/` directory)
 
 The agent should run these scripts for the user, not hand them a list of commands.
+
+**Do not mark “save artifacts” complete until `--download-dir` (or `download_cif.py --dir`) succeeds and files exist under `$SANDWALK_SESSION_WORKSPACE/artifacts/…`.** Do not use `run_python` / shell redirects to download — use the bundled scripts via `shell.run`.
 
 Affinity troubleshooting note:
 - For Boltz-2 affinity jobs, do not conclude "missing affinity output" from a minimal summary alone.
@@ -81,6 +85,7 @@ Affinity troubleshooting note:
 Artifact coverage + safe download note:
 - For consistent artifact discovery across all supported fold models, prefer `collect_artifacts.py` over ad-hoc field checks.
 - The script normalizes link extraction from top-level/per-sequence prediction payloads, recursively scans for additional URL fields, filters to safe FastFold HTTPS hosts, and can download all safe artifacts in one command.
+- On Sandwalk, always pass `--download-dir "$SANDWALK_SESSION_WORKSPACE/artifacts/fold/<job_id>"` so the Files panel updates. Never claim files were saved from link-only JSON.
 - For Boltz-2 affinity runs, `affinity_result_raw_json` is often embedded in API payload (not a signed URL). `collect_artifacts.py` exports these embedded affinity fields as local JSON files when `--download-dir` is used.
 
 ## Background Execution Protocol (Required)
