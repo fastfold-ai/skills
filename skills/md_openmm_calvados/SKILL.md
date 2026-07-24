@@ -22,27 +22,20 @@ Completed OpenMM workflows can also extract a specific trajectory conformation w
 
 ## Authentication
 
-**Get an API key:** Create a key in the [FastFold dashboard](https://cloud.fastfold.ai/api-keys). Keep it secret.
+**Preferred (Sandwalk agent):** Integrations → Fastfold AI Cloud, exposed as
+`FASTFOLD_API_KEY` in the chat shell. Use env vars Sandwalk sets — do not hardcode
+or search home config paths.
 
-**Use the key:** Scripts resolve credentials in this order:
-1. `FASTFOLD_API_KEY` from environment
-2. `.env` in workspace/current parent directories
-3. FastFold CLI config at `~/.fastfold-cli/config.json` (`api.fastfold_cloud_key`)
+Do **not** ask users to paste secrets in chat. Do **not** create `.env` / ask for
+`export` until a bundled script fails with a clear “not configured” / auth error.
+Prefer `printenv FASTFOLD_API_KEY` or run the script.
 
-Do **not** ask users to paste secrets in chat.
+**Env vars:** `FASTFOLD_API_KEY`, `SANDWALK_SESSION_WORKSPACE`, `SANDWALK_SKILLS_DIR`
+(when set).
 
-- **`.env` file (recommended):** Scripts automatically load `FASTFOLD_API_KEY` from a `.env` file in the project root.
-- **Environment:** `export FASTFOLD_API_KEY="sk-..."` (overrides `.env`).
-- **Credential policy:** Never request, accept, echo, or store API keys in chat messages, command history, or logs.
+**Alternatives:** workspace `.env` (`references/.env.example`), shell export, create a key at https://cloud.fastfold.ai/api-keys.
 
-**Only if no key is resolved from env/.env/config:**
-1. Generic-agent guidance (default):
-   - Tell the user to set `FASTFOLD_API_KEY` in environment or `.env`.
-   - You can create `.env` from `references/.env.example` and ask the user to add their key.
-2. Only if user is explicitly on FastFold CLI, you may suggest:
-   - `fastfold setup`
-   - `fastfold config set api.fastfold_cloud_key <key>`
-3. Do not run any workflow scripts until the user confirms the key is set.
+**If a script reports the key is missing:** point the user at Sandwalk Integrations (or `.env` / export), then retry. Do not hunt the filesystem for secrets.
 
 ## When to Use This Skill
 
@@ -53,7 +46,16 @@ Do **not** ask users to paste secrets in chat.
 
 ## Running Scripts
 
-This skill bundles self-contained scripts under its own `scripts/` directory. Run them with `python scripts/<name>.py ...` from the skill directory (or pass the full path). They require only the Python standard library and read `FASTFOLD_API_KEY` from the environment or a `.env` file. Do **not** try to `find` files on disk, `cd` into package directories, or probe `uv tool dir`.
+This skill bundles self-contained scripts under `scripts/` (stdlib only).
+
+**Sandwalk agent — how to invoke (first match wins):**
+1. If `SANDWALK_SKILLS_DIR` is set:
+   `python3 "$SANDWALK_SKILLS_DIR/md_openmm_calvados/scripts/<name>.py ..."`.
+2. Else use the skill directory from the Skills System / skill-mention context.
+3. Put downloads under `"$SANDWALK_SESSION_WORKSPACE"` when set.
+
+Do **not** treat `/md_openmm_calvados`, `/skills/...`, or Modal `/workspace` as the
+install path. Do **not** hardcode `~/.sandwalk/...` or probe `uv tool dir`.
 
 - **Submit MD from a fold job (AF+PAE auto-attach):**
   `python scripts/submit_from_fold_job.py <fold_job_id> [--name "OpenMM via fold"] [--simulation-name my_run] [--preset single_af_go] [--sim-length-ns 0.2] [--step-size-ns 0.01] [--temperature 293.15] [--ionic 0.15] [--ph 7.5] [--box-length 20] [--force-field calvados3] [--charged-n-terminal-amine|--no-charged-n-terminal-amine] [--charged-c-terminal-carboxyl|--no-charged-c-terminal-carboxyl] [--charged-histidine|--no-charged-histidine] [--public]`
@@ -88,7 +90,7 @@ Do not replace this flow with ad-hoc Python `requests` code, curl chains, or pro
 - Do **not** reimplement the workflow with ad-hoc `requests` / `urllib` POSTs to `/v1/workflows`. Use the bundled scripts so preset, file refs, share URLs, polling, and result parsing all behave consistently.
 - Treat `python scripts/submit_from_yml_refs.py` as an advanced lane-2 tool. Use it only when the user explicitly asks for custom YML-reference uploads and file-binding control.
 - **Default to private** — do not pass `--public`. Only add `--public` (to `python scripts/submit_from_fold_job.py` / `python scripts/submit_manual_af_pae.py`) when the user **explicitly** asks for a public link, sharable link, or the workflow to be shared/made public. Correspondingly, only surface the `?shared=true` URL to the user when the workflow is actually public.
-- If a script fails because `FASTFOLD_API_KEY` is unset, set it in the environment or a `.env` file (create one at https://cloud.fastfold.ai/api-keys). Do not attempt to work around it by hunting for scripts or rolling your own code.
+- If a script fails because `FASTFOLD_API_KEY` is unset, point the user at Sandwalk Integrations (or `.env` / export; create a key at https://cloud.fastfold.ai/api-keys). Do not hunt for scripts or roll your own API client.
 - Do not generate temporary monitor scripts in `/tmp`; use `python scripts/wait_for_workflow.py`.
 - Use bounded waits (`--timeout` and `--metrics-timeout`), never open-ended loops.
 - Metrics and plot artifacts can appear slightly **after** first terminal status; `python scripts/wait_for_workflow.py` handles the extra settle window for you.

@@ -31,15 +31,20 @@ Keep script defaults aligned with other skills:
 
 ## Authentication
 
-- Use `FASTFOLD_API_KEY` from environment or `.env`.
-- Do not ask users to paste secrets in chat.
-- This skill uses `X-API-Key: <FASTFOLD_API_KEY>`.
+**Preferred (Sandwalk agent):** Integrations → Fastfold AI Cloud, exposed as
+`FASTFOLD_API_KEY` in the chat shell. This skill sends `X-API-Key: <FASTFOLD_API_KEY>`.
+Use env vars Sandwalk sets — do not hardcode or search home config paths.
 
-If no key is available:
+Do **not** ask users to paste secrets in chat. Do **not** create `.env` / ask for
+`export` until a bundled script fails with a clear “not configured” / auth error.
+Prefer `printenv FASTFOLD_API_KEY` or run the script.
 
-1. Copy `references/.env.example` to `.env`.
-2. Ask the user to set `FASTFOLD_API_KEY=sk-...`.
-3. Continue only after confirmation.
+**Env vars:** `FASTFOLD_API_KEY`, `SANDWALK_SESSION_WORKSPACE` (workspace root),
+`SANDWALK_SKILLS_DIR` (skills root when set).
+
+**Alternatives:** workspace `.env` (`references/.env.example`), shell export, or create a key at https://cloud.fastfold.ai/api-keys.
+
+**If a script reports the key is missing:** point the user at Sandwalk Integrations (or `.env` / export), then retry. Do not hunt the filesystem for secrets.
 
 ## When to Use This Skill
 
@@ -52,8 +57,16 @@ If no key is available:
 
 ## Scripts
 
-This skill bundles self-contained scripts under its own `scripts/` directory. Run them with `python scripts/<name>.py ...` from the skill directory (or pass the full path). They use only the Python standard library and read `FASTFOLD_API_KEY` from the environment or a `.env` file.
-Do **not** hunt for files with `find`/`locate`, and do **not** `cd` into package directories.
+This skill bundles self-contained scripts under `scripts/` (stdlib only).
+
+**Sandwalk agent — how to invoke (first match wins):**
+1. If `SANDWALK_SKILLS_DIR` is set:
+   `python3 "$SANDWALK_SKILLS_DIR/protein_design_boltzgen/scripts/<name>.py ..."`.
+2. Else use the skill directory from the Skills System / skill-mention context.
+3. Put downloads under `"$SANDWALK_SESSION_WORKSPACE"` when set.
+
+Do **not** treat `/protein_design_boltzgen`, `/skills/...`, or Modal `/workspace` as the
+install path. Do **not** hardcode `~/.sandwalk/...` or hunt with `find`/`locate`.
 
 Primary scripts:
 
@@ -64,7 +77,7 @@ Primary scripts:
 
 If `python scripts/workflow_api.py` or `python scripts/fetch_cif.py` returns an error:
 1. Report the exact command + concise error.
-2. If `FASTFOLD_API_KEY` is unset, set it in the environment or a `.env` file (create one at https://cloud.fastfold.ai/api-keys).
+2. If `FASTFOLD_API_KEY` is unset, point the user at Sandwalk Integrations (or `.env` / export; create a key at https://cloud.fastfold.ai/api-keys).
 3. **Stop**. Do not attempt fallback discovery (`find`, `locate`, `ls` package trees, `python -c`).
 
 ### Background execution protocol (required)

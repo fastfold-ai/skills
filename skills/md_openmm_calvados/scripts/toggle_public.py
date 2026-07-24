@@ -39,7 +39,7 @@ def main() -> None:
     if not api_key:
         sys.exit(
             "Error: FASTFOLD_API_KEY is not configured. "
-            "Set it in environment, .env, or ~/.fastfold-cli/config.json."
+            "Set it in environment, .env, or ~/.sandwalk/config.json (legacy ~/.fastfold-cli/config.json)."
         )
 
     base_url = validate_base_url(args.base_url)

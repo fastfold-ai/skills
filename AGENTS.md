@@ -8,7 +8,7 @@ A collection of agent skills for working with the **FastFold Cloud APIs** — th
 
 - Skills live in the **`skills/`** folder.
 - Each skill is self-contained and **portable**: `SKILL.md`, optional `scripts/`, `references/`, and `assets/`. Scripts use only the Python standard library and are invoked directly as `python scripts/<name>.py ...` from the skill directory, so they run consistently wherever the skill is installed.
-- Install for users: `npx skills add fastfold-ai/skills` or `fastfold skills add fastfold-ai/skills` (native, no Node).
+- Install for users: `npx skills add fastfold-ai/skills` or `sandwalk skills add fastfold-ai/skills` (native, no Node).
 
 ## Creating a New Skill
 
@@ -82,6 +82,21 @@ Skills are loaded on-demand: name and description first; full `SKILL.md` when th
 - **File references one level deep** — link directly from SKILL.md to files in `references/` or `scripts/`; avoid deep nesting
 - **Self-contained skills** — bundle the OpenAPI/schema in the skill (e.g. `references/jobs.yaml`) so the skill does not depend on the project root
 
+### Sandwalk agent path (FastFold Cloud skills)
+
+For skills that call FastFold / Sandwalk Integrations credentials, document a
+**Sandwalk-first** path in `SKILL.md` using **env vars only** (no hardcoded
+home paths like `~/.sandwalk/...` in agent instructions):
+
+1. **Auth:** Prefer `FASTFOLD_API_KEY` (from Integrations). Only ask for `.env` /
+   `export` after a bundled script fails with a clear auth error — not after a
+   casual `env` scan. Script helpers may fall back to `$SANDWALK_CONFIG_DIR`
+   internally; do not tell the agent to open config files by path.
+2. **Paths:** `$SANDWALK_SKILLS_DIR/<skill>/scripts/...` when set; else the skill
+   directory from the Skills listing / mention context. Downloads go under
+   `$SANDWALK_SESSION_WORKSPACE` when set. Do not treat `/<skill>` or Modal
+   `/workspace` as the skill install root.
+
 ### Script Requirements
 
 - **Python:** Use `#!/usr/bin/env python3`; prefer `argparse` for CLI args; read API key from env (e.g. `os.environ.get("FASTFOLD_API_KEY")`) and avoid CLI secret flags.
@@ -99,8 +114,8 @@ For distribution as a single artifact:
 ### Releasing (Versioning)
 
 The catalog is versioned **as a whole** — one semver release tag per catalog
-version (not per skill). The Fastfold Agent CLI reads the latest GitHub Release
-to show a skills version in `fastfold skills list` / `/skills` and to surface an
+version (not per skill). sandwalk reads the latest GitHub Release
+to show a skills version in `sandwalk skills list` / `/skills` and to surface an
 upgrade notice on boot.
 
 To cut a release:

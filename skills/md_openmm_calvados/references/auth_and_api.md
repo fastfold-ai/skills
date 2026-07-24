@@ -11,12 +11,14 @@ All workflow and library endpoints require an API key.
 
 - Header: `X-API-Key: <YOUR_API_KEY>` (also accepted: `Authorization: Bearer <YOUR_API_KEY>`)
 - Key creation: https://cloud.fastfold.ai/api-keys
-- Scripts resolve the key from (first match wins):
-  1. `FASTFOLD_API_KEY` env var
-  2. `.env` in the current or any parent directory
-  3. `~/.fastfold-cli/config.json` (`api.fastfold_cloud_key`)
 
-Never paste keys into chat or command arguments.
+**Sandwalk agent (preferred):** use env var `FASTFOLD_API_KEY` (from Integrations).
+Also use `SANDWALK_SESSION_WORKSPACE` / `SANDWALK_SKILLS_DIR` when set. Do not tell
+the agent to open home config paths. Do not ask for `.env` / export until a script
+fails with a clear auth error.
+
+Scripts resolve the key via `load_env` (env → `.env` → `$SANDWALK_CONFIG_DIR` →
+legacy home fallbacks). Never paste keys into chat or command arguments.
 
 ## Endpoints used by this skill
 

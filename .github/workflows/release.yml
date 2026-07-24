@@ -1,7 +1,7 @@
 name: Release
 
 # Publish a GitHub Release whenever a version tag (vX.Y.Z) is pushed.
-# The catalog is versioned as a whole; consumers (e.g. the Fastfold Agent CLI)
+# The catalog is versioned as a whole; consumers (e.g. the sandwalk)
 # read the latest release tag to surface a skills version and an upgrade notice.
 
 on:

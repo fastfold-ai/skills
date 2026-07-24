@@ -14,12 +14,31 @@ All authenticated requests use Bearer token authentication:
 Authorization: Bearer <your-api-key>
 ```
 
-- **Environment variable (recommended):** `export FASTFOLD_API_KEY="sk-..."`
-- Script key resolution order in this skill:
-  1. `FASTFOLD_API_KEY` in environment
-  2. local `.env` (current/parent directories)
-  3. `~/.fastfold-cli/config.json` (`api.fastfold_cloud_key`)
-- Do not pass keys through chat or command history.
+### Sandwalk agent (preferred)
+
+Rely on **environment variables**, not hardcoded filesystem paths:
+
+| Var | Purpose |
+|-----|---------|
+| `FASTFOLD_API_KEY` | API key (from Sandwalk Integrations) |
+| `SANDWALK_SESSION_WORKSPACE` | Chat workspace root for downloads/artifacts |
+| `SANDWALK_SKILLS_DIR` | Installed skills root (when Sandwalk sets it) |
+| `SANDWALK_CONFIG_DIR` | Optional; used by script helpers only |
+
+Do **not** tell the agent to open `~/.sandwalk/config.json` or other home paths.
+Prefer `printenv FASTFOLD_API_KEY` or run the bundled script. Only ask for `.env` /
+`export` after a script reports “not configured” / `401`.
+
+### Script resolution (implementation)
+
+`load_env.resolve_fastfold_api_key()` checks, in order:
+
+1. `FASTFOLD_API_KEY` in the process environment
+2. `.env` under `$SANDWALK_SESSION_WORKSPACE` / cwd parents
+3. `$SANDWALK_CONFIG_DIR/config.json` when that env var is set
+4. Legacy home-config fallbacks for non-Sandwalk agents
+
+Do not pass keys through chat or command history.
 
 ## Base URL
 

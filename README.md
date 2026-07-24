@@ -4,9 +4,9 @@ Open skills where computational scientists and AI agents work together, with wel
 
 [![skills.sh](https://skills.sh/b/fastfold-ai/skills)](https://www.skills.sh/fastfold-ai/skills)
 
-> Run them anywhere. Locally with the [Fastfold Agent CLI](https://docs.fastfold.ai/agents/cli) on your own compute, or in the [Fastfold Cloud Agent](https://cloud.fastfold.ai/agents/skills), where they run in [Modal](https://modal.com/) sandboxes with a persistent filesystem workspace.
+> Run them anywhere. Locally with [sandwalk](https://github.com/fastfold-ai/sandwalk) on your own compute, or in the [Fastfold Cloud Agent](https://cloud.fastfold.ai/agents/skills), where they run in [Modal](https://modal.com/) sandboxes with a persistent filesystem workspace.
 
-Built on the open [Agent Skills](https://www.skills.sh/) ecosystem from Vercel, so they work in any compatible agent: Claude Code, Cursor, Codex, GitHub Copilot, Gemini, the Fastfold Agent CLI, and [many more](https://www.skills.sh/).
+Built on the open [Agent Skills](https://www.skills.sh/) ecosystem from Vercel, so they work in any compatible agent: Claude Code, Cursor, Codex, GitHub Copilot, Gemini, sandwalk, and [many more](https://www.skills.sh/).
 
 ## Install
 
@@ -16,16 +16,16 @@ Install all skills with the open [Skills CLI](https://www.skills.sh/) (Node/`npx
 npx skills add fastfold-ai/skills
 ```
 
-Or with the Fastfold Agent CLI (native, no Node required):
+Or with [sandwalk](https://github.com/fastfold-ai/sandwalk) (native, no Node required):
 
 ```bash
-fastfold skills add fastfold-ai/skills                      # all skills
-fastfold skills add fastfold-ai/skills@skills/fold          # a single skill
+sandwalk skills add fastfold-ai/skills                      # all skills
+sandwalk skills add fastfold-ai/skills@skills/fold          # a single skill
 ```
 
-These are the same catalog skills used by the [Fastfold Agent CLI](https://github.com/fastfold-ai/fastfold-agent-cli). See:
-- Skills docs: [docs.fastfold.ai/agents/skills](https://docs.fastfold.ai/agents/skills)
-- Use skills with the Fastfold Agent CLI: [docs.fastfold.ai/agents/cli](https://docs.fastfold.ai/agents/cli)
+These are the same catalog skills used by sandwalk. See:
+- [sandwalk](https://github.com/fastfold-ai/sandwalk)
+- Skills registry: [skills.sh/fastfold-ai/skills](https://www.skills.sh/fastfold-ai/skills)
 
 ## Usage
 
@@ -66,7 +66,7 @@ Skills in this repo live in the **`skills/`** folder.
 | `slack_report` | Post markdown reports to Slack and save library copies |
 | `diagrams_mermaid` | Generate Mermaid diagrams for complex workflows and pipeline explanations |
 
-Install a single skill with `fastfold skills add fastfold-ai/skills@skills/<skill>` (or `npx skills add fastfold-ai/skills`).
+Install a single skill with `sandwalk skills add fastfold-ai/skills@skills/<skill>` (or `npx skills add fastfold-ai/skills`).
 
 ### boltz
 

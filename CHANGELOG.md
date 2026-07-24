@@ -8,6 +8,20 @@ and the catalog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-07-24
+
+### Changed
+
+- Sandwalk-first auth + invoke guidance across core FastFold skills (`fold`,
+  `protein_design_boltzgen`, `md_openmm_calvados`, `md_openmmdl`, `slack_report`,
+  `boltz`): agent instructions use env vars only (`FASTFOLD_API_KEY`,
+  `SANDWALK_SESSION_WORKSPACE`, `SANDWALK_SKILLS_DIR`) — no hardcoded
+  `~/.sandwalk/...` paths. `.env` / export remain alternatives; ask for a key
+  only after a script auth failure. `load_env.py` prefers
+  `$SANDWALK_CONFIG_DIR` when set.
+- Prefer `~/.sandwalk/config.json` for `FASTFOLD_API_KEY` resolution (legacy `~/.fastfold-cli/config.json` still works).
+- Docs and install examples now point at [sandwalk](https://github.com/fastfold-ai/sandwalk) instead of the Fastfold Agent CLI.
+
 ## [1.1.1] - 2026-06-22
 
 ### Changed

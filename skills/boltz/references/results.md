@@ -4,11 +4,11 @@
 
 Pick the `--root-dir` that matches where the agent is running:
 
-### Local agent (Fastfold Agent CLI, Claude Code, Codex, Cursor, or any local machine)
+### Local agent (sandwalk, Claude Code, Codex, Cursor, or any local machine)
 
 - Plain POSIX filesystem that persists across the session — no S3/`/workspace` quirks.
 - Download straight into a project-relative output dir: `--root-dir "${OUTPUT_DIR:-./outputs}/boltz" --name <slug>`.
-  The Fastfold Agent CLI sets `OUTPUT_DIR` to its artifact dir (config `sandbox.output_dir`, default
+  The sandwalk sets `OUTPUT_DIR` to its artifact dir (config `sandbox.output_dir`, default
   `./outputs`, alongside `./outputs/reports` and `./exports`); other agents simply fall back to `./outputs/boltz`.
 - **Do not** run `scripts/persist.sh` here — there's nothing to mirror to.
 

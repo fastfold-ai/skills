@@ -11,24 +11,33 @@ This skill guides correct use of the [FastFold Jobs API](https://docs.fastfold.a
 
 ## Authentication
 
-**Get an API key:** Create a key in the [FastFold dashboard](https://cloud.fastfold.ai/api-keys). Keep it secret.
+**Preferred (Sandwalk agent):** Credentials come from Sandwalk
+**Integrations → Fastfold AI Cloud**, exposed to the chat shell as the env var
+`FASTFOLD_API_KEY`. Bundled scripts call `load_env.resolve_fastfold_api_key()` and
+read that env var (plus optional `.env` / host config helpers). Do **not** hardcode
+or search home-directory config paths — use env vars Sandwalk sets.
 
-**Use the key:** Scripts resolve `FASTFOLD_API_KEY` in this order:
-1. existing environment variable
-2. `.env` in current/parent directories
-3. `~/.fastfold-cli/config.json` (`api.fastfold_cloud_key`)
-Do **not** ask users to paste secrets in chat.
+Do **not** ask users to paste secrets in chat. Do **not** create a workspace `.env`
+or ask for `export FASTFOLD_API_KEY=...` until a bundled script actually fails with
+a clear “not configured” / `401` error. Prefer `printenv FASTFOLD_API_KEY` or just
+run the script; a truncated `env` dump is not proof the key is missing.
 
-- **`.env` file (recommended):** scripts load `FASTFOLD_API_KEY` from a `.env` file in the current/parent path.
-- **Environment:** `export FASTFOLD_API_KEY="sk-..."` (overrides `.env`).
-- **FastFold CLI config fallback:** `~/.fastfold-cli/config.json` with `api.fastfold_cloud_key`.
-- **Credential policy:** Never request, accept, echo, or store API keys in chat messages, command history, or logs.
+**Env vars the agent should use:**
+| Var | Meaning |
+|-----|---------|
+| `FASTFOLD_API_KEY` | FastFold Cloud API key (from Integrations) |
+| `SANDWALK_SESSION_WORKSPACE` | This chat’s workspace root (downloads/artifacts) |
+| `SANDWALK_SKILLS_DIR` | Installed skills root (when set by Sandwalk) |
 
-**If `FASTFOLD_API_KEY` is not set:**
-1. Copy `references/.env.example` to `.env` at the workspace root.
-2. Tell the user: *"Open the `.env` file and paste your FastFold API key after `FASTFOLD_API_KEY=`. You can create one at [FastFold API Keys](https://cloud.fastfold.ai/api-keys)."*
-3. Do not run submit/mutate scripts until the user confirms the key is set.
-4. For `fetch_results.py`, `wait_for_completion.py`, and `collect_artifacts.py`, public jobs can still be read without a key; on `401`, treat it as a private-job auth requirement.
+**Alternatives** (non-Sandwalk / offline):
+- Workspace `.env` with `FASTFOLD_API_KEY=...` (`references/.env.example`)
+- Shell: `export FASTFOLD_API_KEY=sk-...`
+- Create a key at [FastFold API Keys](https://cloud.fastfold.ai/api-keys)
+
+**If a submit/mutate script reports the key is missing:**
+1. Ask the user to set **Integrations → Fastfold AI Cloud** (or `.env` / export), then retry.
+2. Do not hunt the filesystem for secrets or config files. Do not reimplement API calls by hand.
+3. For `fetch_results.py`, `wait_for_completion.py`, and `collect_artifacts.py`, public jobs can still be read without a key; on `401`, treat it as private-job auth.
 
 ## When to Use This Skill
 
@@ -38,7 +47,18 @@ Do **not** ask users to paste secrets in chat.
 
 ## Running Scripts
 
-This skill bundles self-contained scripts under its own `scripts/` directory. Run them with `python` from the skill directory (or pass the full path), e.g. `python scripts/create_job.py ...`. They require only the Python standard library and read `FASTFOLD_API_KEY` from the environment or a `.env` file.
+This skill bundles self-contained scripts under `scripts/` (stdlib only).
+
+**Sandwalk agent — how to invoke (first match wins):**
+1. If `SANDWALK_SKILLS_DIR` is set:
+   `python3 "$SANDWALK_SKILLS_DIR/fold/scripts/<name>.py ..."`
+   (or `working_dir="$SANDWALK_SKILLS_DIR/fold"` + `python3 scripts/<name>.py ...`).
+2. Else use the skill directory from the Skills System / skill-mention context
+   (whatever path Sandwalk lists — do not invent home paths).
+3. Put downloads under `"$SANDWALK_SESSION_WORKSPACE"` when that env var is set.
+
+Do **not** treat `/fold`, `/skills/fold`, or Modal `/workspace` as the install path.
+Do **not** `find` / `locate` / hardcode `~/.sandwalk/...` for scripts.
 
 - **Create job (simple):** `python scripts/create_job.py --name "My Job" --sequence MALW... [--model boltz-2] [--public]`
 - **Create job (full payload):** `python scripts/create_job.py --payload job.json`
@@ -81,9 +101,9 @@ Non-negotiable rules:
 
 ### Agent execution guardrails (required)
 
-- **Always** invoke the bundled scripts directly: `python scripts/<script>.py ...` from this skill's directory (or with the full path to the script). Do not hunt for them with `find`, `locate`, or `ls`.
+- **Always** invoke the bundled scripts via the Sandwalk invoke rules above. Do not hunt with `find`, `locate`, or `ls /`.
 - Do **not** reimplement the flow by hand (e.g. `requests` / `urllib` POST to `/v1/jobs`). Use the bundled scripts.
-- If a script fails because `FASTFOLD_API_KEY` is unset, set it in the environment or a `.env` file (create one at https://cloud.fastfold.ai/api-keys). Do not work around it with hand-rolled code.
+- If a script fails because `FASTFOLD_API_KEY` is unset, point the user at Sandwalk Integrations (or `.env` / export). Do not work around it with hand-rolled code.
 - Do not generate temporary monitoring scripts in `/tmp`; call the bundled waiter directly.
 - Use bounded waits (`--timeout`, `--evolla-timeout`, `--webhook-timeout`, `--workflow-timeout`) instead of open-ended loops.
 - Treat `workflowStatus == NOT_FOUND` as a signal that webhook linkage is missing/delayed, not as a reason to keep polling indefinitely.

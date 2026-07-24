@@ -112,7 +112,7 @@ Notes:
 ## CLI Usage Pattern
 
 Pick `<resource>` from the mapping above; reuse one `<slug>` as `--idempotency-key` and `--name`.
-Set `<root>` by runtime — local agent (Fastfold Agent CLI): `"${OUTPUT_DIR:-./outputs}/boltz"`;
+Set `<root>` by runtime — local agent (sandwalk): `"${OUTPUT_DIR:-./outputs}/boltz"`;
 hosted sandbox with S3-backed `/workspace`: `/tmp/boltz-runs` (then `persist.sh`). See
 [results.md](results.md) for the full rule.
 

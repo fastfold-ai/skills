@@ -19,20 +19,24 @@ def _resolve_fastfold_api_key() -> str | None:
     if api_key:
         return api_key
 
-    config_path = Path.home() / ".fastfold-cli" / "config.json"
-    if not config_path.exists():
-        return None
-    try:
-        cfg = json.loads(config_path.read_text(encoding="utf-8"))
-        if not isinstance(cfg, dict):
-            return None
-        cfg_key = str(cfg.get("api.fastfold_cloud_key") or "").strip()
-        if not cfg_key:
-            return None
-        os.environ["FASTFOLD_API_KEY"] = cfg_key
-        return cfg_key
-    except Exception:
-        return None
+    for config_path in (
+        Path.home() / ".sandwalk" / "config.json",
+        Path.home() / ".fastfold-cli" / "config.json",
+    ):
+        if not config_path.exists():
+            continue
+        try:
+            cfg = json.loads(config_path.read_text(encoding="utf-8"))
+            if not isinstance(cfg, dict):
+                continue
+            cfg_key = str(cfg.get("api.fastfold_cloud_key") or "").strip()
+            if not cfg_key:
+                continue
+            os.environ["FASTFOLD_API_KEY"] = cfg_key
+            return cfg_key
+        except Exception:
+            continue
+    return None
 
 
 def _read_markdown(markdown_file: str | None, use_stdin: bool) -> str:

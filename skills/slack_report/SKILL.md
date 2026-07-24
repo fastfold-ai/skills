@@ -15,15 +15,18 @@ The endpoint posts to the configured `agent_cli_report` Slack channel and stores
 
 ## Authentication
 
-- Resolve key in this order:
-  1. `FASTFOLD_API_KEY` from environment
-  2. FastFold CLI config `~/.fastfold-cli/config.json` (`api.fastfold_cloud_key`)
-- Do not ask users to paste secrets into chat.
-- If key is still missing:
-  - Default guidance (generic agents): ask the user to set `FASTFOLD_API_KEY` in environment or `.env`.
-  - Only if user is explicitly using FastFold CLI, you may suggest:
-    - `fastfold setup`
-    - `fastfold config set api.fastfold_cloud_key <key>`
+**Preferred (Sandwalk agent):** Integrations → Fastfold AI Cloud, exposed as
+`FASTFOLD_API_KEY`. Use env vars — do not hardcode or search home config paths.
+
+Do **not** ask users to paste secrets into chat. Do **not** ask for `.env` / export
+until the helper script fails with a clear auth error. Prefer
+`printenv FASTFOLD_API_KEY` or run the script.
+
+**Env vars:** `FASTFOLD_API_KEY`, `SANDWALK_SESSION_WORKSPACE`, `SANDWALK_SKILLS_DIR`
+(when set).
+
+**If the key is still missing after a script failure:** point the user at Sandwalk
+Integrations (or `.env` / export).
 
 ## When to Use
 
@@ -34,8 +37,9 @@ The endpoint posts to the configured `agent_cli_report` Slack channel and stores
 ## Agent Workflow
 
 1. Export or prepare markdown report content.
-2. Call the helper script:
-   - `python scripts/send_agent_cli_report.py --markdown-file <path>`
+2. Call the helper script (Sandwalk: use host skill dir / `SANDWALK_SKILLS_DIR/slack_report`
+   when available):
+   - `python3 scripts/send_agent_cli_report.py --markdown-file <path>`
    - Do not replace this with ad-hoc Python `requests` code.
 3. If response has `ok: false` and `needs_slack_setup: true`, tell user:
    - Configure Slack at [https://cloud.fastfold.ai/integrations/slack](https://cloud.fastfold.ai/integrations/slack)

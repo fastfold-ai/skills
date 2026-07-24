@@ -23,10 +23,17 @@ Mode → CLI resource:
 
 ## Authentication
 
-- `BOLTZ_API_KEY` must be set before any command (env injection in hosted runtimes, or a local `.env`/shell export).
-- If it is missing, stop and ask the user to set it; don't proceed.
-- Fastfold Cloud: provider setup at `https://cloud.fastfold.ai/integrations/providers?provider=boltz`;
-  create a key in the Boltz console at `https://api.boltz.bio/console`. Restart the session so the env var is visible.
+**Preferred (Sandwalk agent):** Set `BOLTZ_API_KEY` via Sandwalk **Integrations**
+(Boltz / Fastfold Cloud provider wiring). Sandwalk mirrors configured provider keys into
+the chat shell env for `shell.run`. Do **not** ask the user to paste the secret in chat.
+
+**Alternatives:** local `.env` / `export BOLTZ_API_KEY=...`, or create a key in the
+Boltz console at https://api.boltz.bio/console (Fastfold Cloud provider page:
+https://cloud.fastfold.ai/integrations/providers?provider=boltz).
+
+**If `BOLTZ_API_KEY` is missing:** stop after a failed `boltz-api` / `printenv BOLTZ_API_KEY`
+check; tell the user to configure Integrations (or export / `.env`) and retry. Do not
+hunt the filesystem for secrets.
 
 ## Install
 
@@ -40,9 +47,9 @@ Mode → CLI resource:
    can be stopped early (`stop`) to cap spend; `sab`/`adme` are short and cannot be stopped. There is
    no pause/resume of compute.
 2. **Save results to a durable location — where depends on your runtime (pick one).**
-   - **Local agent (Fastfold Agent CLI, Claude Code, Codex, Cursor, or any local machine):** the
+   - **Local agent (sandwalk, Claude Code, Codex, Cursor, or any local machine):** the
      filesystem is plain POSIX and persists across the session. Download straight into a project-relative
-     output dir — use `--root-dir "${OUTPUT_DIR:-./outputs}/boltz"` (Fastfold Agent CLI sets `OUTPUT_DIR`;
+     output dir — use `--root-dir "${OUTPUT_DIR:-./outputs}/boltz"` (sandwalk sets `OUTPUT_DIR`;
      other agents fall back to `./outputs/boltz`). No copy step; **don't** use `persist.sh`.
    - **Hosted sandbox with an S3-backed `/workspace`:** the CLI can't download into `/workspace`
      directly (not a full POSIX filesystem), and `/tmp` is ephemeral (wiped on eviction). Download to

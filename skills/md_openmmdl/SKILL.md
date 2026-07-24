@@ -19,21 +19,20 @@ It supports:
 
 ## Authentication
 
-Get an API key at:
+**Preferred (Sandwalk agent):** Integrations → Fastfold AI Cloud, exposed as
+`FASTFOLD_API_KEY` in the chat shell. Use env vars Sandwalk sets — do not hardcode
+or search home config paths.
 
-https://cloud.fastfold.ai/api-keys
+Do **not** ask users to paste secrets in chat. Do **not** create `.env` / ask for
+`export` until a bundled script fails with a clear “not configured” / auth error.
+Prefer `printenv FASTFOLD_API_KEY` or run the script.
 
-Scripts resolve `FASTFOLD_API_KEY` in this order:
+**Env vars:** `FASTFOLD_API_KEY`, `SANDWALK_SESSION_WORKSPACE`, `SANDWALK_SKILLS_DIR`
+(when set).
 
-1. Existing environment variable.
-2. `.env` in current or parent directories.
-3. `~/.fastfold-cli/config.json` (`api.fastfold_cloud_key`).
+**Alternatives:** workspace `.env` (`references/.env.example`), shell export, or create a key at https://cloud.fastfold.ai/api-keys.
 
-If no key is available:
-
-1. Copy `references/.env.example` to `.env`.
-2. Set `FASTFOLD_API_KEY=sk-...`.
-3. Continue only after the key is configured.
+**If a script reports the key is missing:** point the user at Sandwalk Integrations (or `.env` / export), then retry. Do not hunt the filesystem for secrets.
 
 ## When to Use This Skill
 
@@ -45,8 +44,16 @@ If no key is available:
 
 ## Running Scripts
 
-This skill bundles self-contained scripts under its own `scripts/` directory.
-Run them with `python scripts/<name>.py ...` from the skill directory (or pass the full path). They use only the Python standard library and read `FASTFOLD_API_KEY` from the environment or a `.env` file.
+This skill bundles self-contained scripts under `scripts/` (stdlib only).
+
+**Sandwalk agent — how to invoke (first match wins):**
+1. If `SANDWALK_SKILLS_DIR` is set:
+   `python3 "$SANDWALK_SKILLS_DIR/md_openmmdl/scripts/<name>.py ..."`.
+2. Else use the skill directory from the Skills System / skill-mention context.
+3. Put downloads under `"$SANDWALK_SESSION_WORKSPACE"` when set.
+
+Do **not** treat `/md_openmmdl`, `/skills/...`, or Modal `/workspace` as the install path.
+Do **not** hardcode `~/.sandwalk/...` or hunt with `find` / `locate`.
 
 ### Primary commands
 
