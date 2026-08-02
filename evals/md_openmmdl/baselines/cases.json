@@ -1,0 +1,14 @@
+{
+  "description": "Short OpenMMDL smoke via topology from a completed fold CIF.",
+  "cases": [
+    {
+      "id": "topology_from_fold_cif",
+      "kind": "topology_only",
+      "fold_case_id": "boltz-2",
+      "sim_length_ns": 0.1,
+      "run_analysis": false,
+      "timeout_s": 3600,
+      "results_timeout_s": 1200
+    }
+  ]
+}

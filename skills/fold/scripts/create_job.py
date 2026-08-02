@@ -14,7 +14,8 @@ Supports two modes:
    echo '{"name":"...","sequences":[...],"params":{...}}' | create_job.py --payload -
 
 Full payload allows: multiple sequences (proteinChain, rnaSequence, dnaSequence, ligandSequence),
-params (modelName: boltz-2, openfold3, chai1, intellifold, monomer, multimer, esm1b, boltz, simplefold_100M ... simplefold_3B;
+params (modelName: boltz-2, openfold3, chai1, intellifold, nesso, esmfold2-fast-2026-05, esmfold2-2026-05,
+monomer, multimer, esm1b, boltz, simplefold_100M ... simplefold_3B;
 relaxPrediction, recyclingSteps, samplingSteps, diffusionSample, numModelSeeds, numDiffnSamples, numTrunkSamples, etc.),
 constraints (contact, pocket, bond, webhooks), isPublic, and optional "from" (library ID). See references/jobs.yaml for
 schema and examples.
@@ -23,6 +24,10 @@ Webhook notes: `constraints.webhooks` supports nested webhook configs:
 - Evolla: `webhooks.evolla.enabled` (bool) + optional `webhooks.evolla.initial_question` (string)
 - OpenMM: `webhooks.openmm.enabled` (bool) + optional OpenMM overrides
   (`preset`, `residue_profile`, `temp`, `ionic`, `pH`, `step_size_ns`, `sim_length_ns`, etc.)
+- Nesso-1 affinity (on_start): `webhooks.nesso.enabled` (bool) + `event: "on_start"` +
+  `protein_chain_id` + `ligand_chain_id` + optional `recycling_steps` (1–20, default 5).
+  Parent must include protein + ligand (SMILES or CCD). Not allowed on native `modelName: nesso`
+  jobs. Nesso is affinity-metrics-only (no CIF/PDB); structure comes from the parent model.
 
 Requires: Python standard library only (no external dependencies)
 Environment: FASTFOLD_API_KEY

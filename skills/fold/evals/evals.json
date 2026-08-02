@@ -1,0 +1,57 @@
+{
+  "skill_name": "fold",
+  "evals": [
+    {
+      "id": 1,
+      "name": "esmfold2-model-string",
+      "prompt": "Using FastFold, fold this protein with ESMFold2 (fast weight set). Sequence: MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGL. Produce the exact Jobs API JSON payload you would submit (do not invent field names). Save it as job_payload.json.",
+      "expected_output": "Payload uses modelName esmfold2-fast-2026-05 (not esmfold2 / ESMFold2 / esm1b).",
+      "files": [],
+      "expectations": [
+        "Payload JSON includes params.modelName equal to esmfold2-fast-2026-05",
+        "Payload does not use params.model (wrong field)",
+        "Payload includes a proteinChain sequence",
+        "Payload does not use modelName esm1b as a substitute for ESMFold2"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "nesso-affinity-only",
+      "prompt": "Submit a native Nesso-1 affinity job for protein PQITLWQRPLVTIKIGGQLKEALLDTGADDTVLEEMSLPGRWKPKMIGGIGGFIKVRQYDQILIEICGHKAIGTVLVGPTPVNIIGRNLLTQIGCTLNF and SMILES ligand CC1CN(CC(C1)NC(=O)C2=CC=CC=C2N)C(=O)NC(C)(C)C. Write the Jobs API JSON payload to job_payload.json and a short notes.md explaining what artifacts to expect (CIF? affinity?).",
+      "expected_output": "modelName nesso; ligand property_type affinity; notes say affinity-only / no structure.",
+      "files": [],
+      "expectations": [
+        "Payload params.modelName is exactly nesso",
+        "Ligand has property_type affinity",
+        "notes.md states that Nesso does not return CIF/PDB structure",
+        "notes.md states affinity metrics / affinity_result_raw_json are the expected outputs"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "nesso-webhook-on-start",
+      "prompt": "I want Boltz-2 structure plus Nesso affinity for the same protein-ligand complex (protein chain A, CCD ligand U4U on chain B). Write the Jobs API JSON with the correct webhook configuration to job_payload.json, and write wait_command.sh with the preferred wait script from the FastFold fold skill.",
+      "expected_output": "boltz-2 parent + constraints.webhooks.nesso on_start with chain ids; wait_for_nesso_linked.py.",
+      "files": [],
+      "expectations": [
+        "Payload params.modelName is boltz-2",
+        "constraints.webhooks.nesso.enabled is true",
+        "constraints.webhooks.nesso.event is on_start",
+        "constraints.webhooks.nesso includes protein_chain_id A and ligand_chain_id B",
+        "wait_command.sh references wait_for_nesso_linked.py"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "openfold3-field-names",
+      "prompt": "Create an OpenFold-3 fold job payload for sequence MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGL with one diffusion sample. Save job_payload.json.",
+      "expected_output": "modelName openfold3 (not OpenFold-3); diffusionSample not diffusionSamples.",
+      "files": [],
+      "expectations": [
+        "params.modelName is exactly openfold3",
+        "Uses diffusionSample (singular) if sampling count is set",
+        "Does not set computeAffinity or Boltz affinity params for OpenFold 3"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,317 @@
+{
+  "description": "One short smoke payload per fold catalog model (+ Nesso webhook). Sequences kept short for baseline cost/time.",
+  "cases": [
+    {
+      "id": "boltz-2",
+      "modelName": "boltz-2",
+      "kind": "structure",
+      "timeout_s": 1800,
+      "payload": {
+        "name": "eval-baseline-boltz-2",
+        "isPublic": false,
+        "sequences": [
+          {
+            "proteinChain": {
+              "sequence": "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGL",
+              "chain_id": "A"
+            }
+          }
+        ],
+        "params": { "modelName": "boltz-2" }
+      }
+    },
+    {
+      "id": "boltz",
+      "modelName": "boltz",
+      "kind": "structure",
+      "timeout_s": 1800,
+      "payload": {
+        "name": "eval-baseline-boltz",
+        "isPublic": false,
+        "sequences": [
+          {
+            "proteinChain": {
+              "sequence": "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGL",
+              "chain_id": "A"
+            }
+          }
+        ],
+        "params": { "modelName": "boltz" }
+      }
+    },
+    {
+      "id": "openfold3",
+      "modelName": "openfold3",
+      "kind": "structure",
+      "timeout_s": 2400,
+      "payload": {
+        "name": "eval-baseline-openfold3",
+        "isPublic": false,
+        "sequences": [
+          {
+            "proteinChain": {
+              "sequence": "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGL",
+              "chain_id": "A"
+            }
+          }
+        ],
+        "params": {
+          "modelName": "openfold3",
+          "diffusionSample": 1,
+          "numModelSeeds": 1
+        }
+      }
+    },
+    {
+      "id": "chai1",
+      "modelName": "chai1",
+      "kind": "structure",
+      "timeout_s": 2400,
+      "payload": {
+        "name": "eval-baseline-chai1",
+        "isPublic": false,
+        "sequences": [
+          {
+            "proteinChain": {
+              "sequence": "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGL",
+              "chain_id": "A"
+            }
+          }
+        ],
+        "params": {
+          "modelName": "chai1",
+          "numDiffnSamples": 1,
+          "numTrunkSamples": 1,
+          "numTrunkRecycles": 1,
+          "numDiffnTimesteps": 50
+        }
+      }
+    },
+    {
+      "id": "intellifold",
+      "modelName": "intellifold",
+      "kind": "structure",
+      "timeout_s": 2400,
+      "payload": {
+        "name": "eval-baseline-intellifold",
+        "isPublic": false,
+        "sequences": [
+          {
+            "proteinChain": {
+              "sequence": "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGL",
+              "chain_id": "A"
+            }
+          }
+        ],
+        "params": {
+          "modelName": "intellifold",
+          "recyclingSteps": 3,
+          "samplingSteps": 20,
+          "diffusionSample": 1
+        }
+      }
+    },
+    {
+      "id": "esmfold2-fast",
+      "modelName": "esmfold2-fast-2026-05",
+      "kind": "structure",
+      "timeout_s": 2400,
+      "payload": {
+        "name": "eval-baseline-esmfold2-fast",
+        "isPublic": false,
+        "sequences": [
+          {
+            "proteinChain": {
+              "sequence": "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGL",
+              "chain_id": "A"
+            }
+          }
+        ],
+        "params": {
+          "modelName": "esmfold2-fast-2026-05",
+          "recyclingSteps": 3,
+          "samplingSteps": 20,
+          "diffusionSample": 1
+        }
+      }
+    },
+    {
+      "id": "esmfold2-full",
+      "modelName": "esmfold2-2026-05",
+      "kind": "structure",
+      "timeout_s": 3600,
+      "payload": {
+        "name": "eval-baseline-esmfold2-full",
+        "isPublic": false,
+        "sequences": [
+          {
+            "proteinChain": {
+              "sequence": "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGL",
+              "chain_id": "A"
+            }
+          }
+        ],
+        "params": {
+          "modelName": "esmfold2-2026-05",
+          "recyclingSteps": 3,
+          "samplingSteps": 20,
+          "diffusionSample": 1
+        }
+      }
+    },
+    {
+      "id": "nesso",
+      "modelName": "nesso",
+      "kind": "affinity",
+      "timeout_s": 1800,
+      "expect_structure": false,
+      "expect_affinity": true,
+      "payload": {
+        "name": "eval-baseline-nesso",
+        "isPublic": false,
+        "sequences": [
+          {
+            "proteinChain": {
+              "sequence": "PQITLWQRPLVTIKIGGQLKEALLDTGADDTVLEEMSLPGRWKPKMIGGIGGFIKVRQYDQILIEICGHKAIGTVLVGPTPVNIIGRNLLTQIGCTLNF",
+              "chain_id": "A"
+            }
+          },
+          {
+            "ligandSequence": {
+              "sequence": "CC1CN(CC(C1)NC(=O)C2=CC=CC=C2N)C(=O)NC(C)(C)C",
+              "property_type": "affinity",
+              "chain_id": "B"
+            }
+          }
+        ],
+        "params": {
+          "modelName": "nesso",
+          "recyclingSteps": 3
+        }
+      }
+    },
+    {
+      "id": "nesso-webhook",
+      "modelName": "boltz-2",
+      "kind": "structure+affinity_webhook",
+      "timeout_s": 2400,
+      "nesso_timeout_s": 1800,
+      "expect_structure": true,
+      "expect_affinity": true,
+      "waiter": "nesso_linked",
+      "payload": {
+        "name": "eval-baseline-boltz2-nesso-webhook",
+        "isPublic": false,
+        "sequences": [
+          {
+            "proteinChain": {
+              "sequence": "PQITLWQRPLVTIKIGGQLKEALLDTGADDTVLEEMSLPGRWKPKMIGGIGGFIKVRQYDQILIEICGHKAIGTVLVGPTPVNIIGRNLLTQIGCTLNF",
+              "chain_id": "A"
+            }
+          },
+          {
+            "ligandSequence": {
+              "sequence": "U4U",
+              "is_ccd": true,
+              "chain_id": "B"
+            }
+          }
+        ],
+        "params": { "modelName": "boltz-2" },
+        "constraints": {
+          "webhooks": {
+            "nesso": {
+              "enabled": true,
+              "event": "on_start",
+              "protein_chain_id": "A",
+              "ligand_chain_id": "B",
+              "recycling_steps": 3
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "esm1b",
+      "modelName": "esm1b",
+      "kind": "structure",
+      "timeout_s": 1800,
+      "payload": {
+        "name": "eval-baseline-esm1b",
+        "isPublic": false,
+        "sequences": [
+          {
+            "proteinChain": {
+              "sequence": "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGL",
+              "chain_id": "A"
+            }
+          }
+        ],
+        "params": { "modelName": "esm1b" }
+      }
+    },
+    {
+      "id": "monomer",
+      "modelName": "monomer",
+      "kind": "structure",
+      "timeout_s": 3600,
+      "payload": {
+        "name": "eval-baseline-af2-monomer",
+        "isPublic": false,
+        "sequences": [
+          {
+            "proteinChain": {
+              "sequence": "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGL",
+              "chain_id": "A"
+            }
+          }
+        ],
+        "params": { "modelName": "monomer" }
+      }
+    },
+    {
+      "id": "multimer",
+      "modelName": "multimer",
+      "kind": "structure",
+      "timeout_s": 3600,
+      "payload": {
+        "name": "eval-baseline-af2-multimer",
+        "isPublic": false,
+        "sequences": [
+          {
+            "proteinChain": {
+              "sequence": "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGL",
+              "chain_id": "A"
+            }
+          },
+          {
+            "proteinChain": {
+              "sequence": "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGL",
+              "chain_id": "B"
+            }
+          }
+        ],
+        "params": { "modelName": "multimer" }
+      }
+    },
+    {
+      "id": "simplefold_100M",
+      "modelName": "simplefold_100M",
+      "kind": "structure",
+      "timeout_s": 1800,
+      "payload": {
+        "name": "eval-baseline-simplefold-100M",
+        "isPublic": false,
+        "sequences": [
+          {
+            "proteinChain": {
+              "sequence": "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGL",
+              "chain_id": "A"
+            }
+          }
+        ],
+        "params": { "modelName": "simplefold_100M" }
+      }
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+**/workspace/
+**/.env
+**/secrets*
+# Full metrics JSON often embeds signed artifact URLs — keep local only.
+**/reports/*-metrics.json
+**/reports/**/metrics.json

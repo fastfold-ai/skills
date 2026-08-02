@@ -1,0 +1,17 @@
+{
+  "description": "BoltzGen end-to-end smoke using bundled presets (can take a long time).",
+  "cases": [
+    {
+      "id": "binding_disordered_peptides",
+      "preset": "binding_disordered_peptides",
+      "timeout_s": 7200,
+      "poll_seconds": 30
+    },
+    {
+      "id": "vanilla_target_binding_site",
+      "preset": "vanilla_target_binding_site",
+      "timeout_s": 7200,
+      "poll_seconds": 30
+    }
+  ]
+}

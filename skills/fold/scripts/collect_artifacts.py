@@ -253,6 +253,27 @@ def collect_embedded_artifacts(results_payload: dict) -> list[dict]:
                         "content": affinity,
                     }
                 )
+
+    # Nesso-1 webhook merges affinity onto parent constraints.webhooks.nesso
+    constraints = results_payload.get("constraints")
+    if not isinstance(constraints, dict):
+        job = results_payload.get("job")
+        constraints = job.get("constraints") if isinstance(job, dict) else None
+    if isinstance(constraints, dict):
+        webhooks = constraints.get("webhooks")
+        if isinstance(webhooks, dict):
+            nesso = webhooks.get("nesso")
+            if isinstance(nesso, dict):
+                affinity = nesso.get("affinity_result_raw_json")
+                if isinstance(affinity, dict) and affinity:
+                    embedded.append(
+                        {
+                            "label": "Nesso Affinity Results JSON",
+                            "source_path": "constraints.webhooks.nesso.affinity_result_raw_json",
+                            "suggested_file_name": "nesso_affinity_result_raw.json",
+                            "content": affinity,
+                        }
+                    )
     return embedded
 
 

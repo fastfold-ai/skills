@@ -1,0 +1,23 @@
+{
+  "description": "Short CALVADOS/OpenMM smoke cases via skill scripts.",
+  "cases": [
+    {
+      "id": "from_fold_job",
+      "kind": "fold_job",
+      "fold_case_id": "boltz-2",
+      "sim_length_ns": 0.05,
+      "step_size_ns": 0.01,
+      "timeout_s": 2400,
+      "metrics_timeout_s": 900
+    },
+    {
+      "id": "from_uniprot_manual",
+      "kind": "uniprot_manual",
+      "uniprot_id": "P0CG48",
+      "sim_length_ns": 0.05,
+      "step_size_ns": 0.01,
+      "timeout_s": 2400,
+      "metrics_timeout_s": 900
+    }
+  ]
+}
