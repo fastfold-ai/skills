@@ -8,6 +8,29 @@ and the catalog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-08-02
+
+### Added
+
+- `fold`: ESMFold2 support (`esmfold2-fast-2026-05`, `esmfold2-2026-05`) with
+  optional `recyclingSteps` / `samplingSteps` / `diffusionSample`.
+- `fold`: Nesso-1 affinity support (`modelName: nesso`) — affinity metrics only
+  (no CIF/PDB); native protein–ligand jobs and `constraints.webhooks.nesso`
+  (`event: on_start`) on structure parents.
+- `fold`: `scripts/wait_for_nesso_linked.py` for fold + linked Nesso affinity
+  waits; `collect_artifacts.py` exports Nesso webhook affinity JSON.
+- Catalog eval harness under `evals/` for re-runnable API baselines (`fold`,
+  `md_openmm_calvados`, `md_openmmdl`, `protein_design_boltzgen`) plus fold
+  instruction-eval helpers and skill-creator HTML viewer.
+
+### Changed
+
+- `fold`: slimmed `SKILL.md` via progressive disclosure — model catalog table
+  (structure vs affinity-only) at the top; payload examples and params moved to
+  `references/payload_examples.md` and `references/params_by_model.md`.
+- `fold`: OpenAPI/schema docs updated for new model names and Nesso webhook
+  fields (`references/jobs.yaml`, `references/schema_summary.md`).
+
 ## [1.1.3] - 2026-07-24
 
 ### Changed
@@ -114,7 +137,10 @@ and the catalog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 - Initial versioned release of the Fastfold AI Skills catalog.
 - Skills: `fold`, `protein_design_boltzgen`, `md_openmm_calvados`, `md_openmmdl`, `slack_report`.
 
-[Unreleased]: https://github.com/fastfold-ai/skills/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/fastfold-ai/skills/compare/v1.1.4...HEAD
+[1.1.4]: https://github.com/fastfold-ai/skills/releases/tag/v1.1.4
+[1.1.3]: https://github.com/fastfold-ai/skills/releases/tag/v1.1.3
+[1.1.2]: https://github.com/fastfold-ai/skills/releases/tag/v1.1.2
 [1.1.1]: https://github.com/fastfold-ai/skills/releases/tag/v1.1.1
 [1.1.0]: https://github.com/fastfold-ai/skills/releases/tag/v1.1.0
 [1.0.6]: https://github.com/fastfold-ai/skills/releases/tag/v1.0.6
