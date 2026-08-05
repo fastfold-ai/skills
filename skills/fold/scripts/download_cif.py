@@ -19,6 +19,7 @@ import os
 import sys
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 from load_env import resolve_fastfold_api_key
 from security_utils import (
@@ -27,6 +28,13 @@ from security_utils import (
     validate_job_id,
     validate_results_payload,
 )
+
+
+def _emit_local_paths(paths: list[str]) -> None:
+    resolved = [str(Path(p).expanduser().resolve()) for p in paths]
+    print("DOWNLOADED_LOCAL_PATHS:")
+    for path in resolved:
+        print(path)
 
 
 def get_results(base_url: str, api_key: str | None, job_id: str) -> dict:
@@ -138,7 +146,7 @@ def main():
             path = os.path.join(args.dir, f"{job_id}.cif")
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         download(url, path, max_bytes=args.max_bytes)
-        print(path)
+        _emit_local_paths([path])
         return
 
     # Non-complex: one CIF per sequence
@@ -152,15 +160,17 @@ def main():
     if args.out and len(urls) == 1:
         os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
         download(urls[0], args.out, max_bytes=args.max_bytes)
-        print(args.out)
+        _emit_local_paths([args.out])
         return
     if args.out and len(urls) > 1:
         sys.exit("Error: Job has multiple sequences; use --dir instead of --out.")
     os.makedirs(args.dir, exist_ok=True)
+    written: list[str] = []
     for i, url in enumerate(urls):
         path = os.path.join(args.dir, f"output_{i}.cif")
         download(url, path, max_bytes=args.max_bytes)
-        print(path)
+        written.append(path)
+    _emit_local_paths(written)
 
 
 if __name__ == "__main__":

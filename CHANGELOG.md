@@ -8,6 +8,21 @@ and the catalog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.1.5] - 2026-08-05
+
+### Changed
+
+- Download-heavy skills now emit absolute `local_paths` /
+  `DOWNLOADED_LOCAL_PATHS:` early in script stdout/JSON so agents can cite
+  clickable full paths (survives tool-result truncation of long URL lists):
+  `fold` (`collect_artifacts.py`, `download_cif.py`),
+  `protein_design_boltzgen` (`workflow_api.py` download / wait auto-download),
+  `md_openmmdl` / `md_openmm_calvados` (`extract_frame.py --download`),
+  `md_openmm_calvados` (`fetch_uniprot.py`).
+- Matching `SKILL.md` cite rules: copy `local_paths` verbatim; never
+  middle-truncate filenames/ids; prefer `Label: https://…` / absolute local
+  paths over markdown `[Label](url)` for sandwalk TUI click-to-open.
+
 ## [1.1.4] - 2026-08-02
 
 ### Added

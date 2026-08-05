@@ -54,6 +54,8 @@ This skill bundles self-contained scripts under `scripts/` (stdlib only).
 2. Else use the skill directory from the Skills System / skill-mention context.
 3. Put downloads under `"$SANDWALK_SESSION_WORKSPACE"` when set.
 
+**Citing local files:** After `fetch_uniprot.py`, `extract_frame.py … --download …`, or any save into the session workspace, copy every path from `local_paths` / `DOWNLOADED_LOCAL_PATHS:` / `downloaded_to` **verbatim** — full absolute paths, one per line. Never middle-truncate filenames or workflow ids. For remote URLs, print `Label: https://…` (bare URL), not markdown `[Label](url)`.
+
 Do **not** treat `/md_openmm_calvados`, `/skills/...`, or Modal `/workspace` as the
 install path. Do **not** hardcode `~/.sandwalk/...` or probe `uv tool dir`.
 
@@ -315,41 +317,43 @@ The command fetches the workflow first and validates `--time-ns` against `sim_le
 
 As soon as the workflow is terminal with results populated, the agent must proactively surface two links to the user.
 
-**URL formatting rule (required):** in user-facing responses, prefer concise markdown link labels (for example `[Dashboard](...)`, `[Py2DMol Viewer](...)`, `[RMSD Plot](...)`) instead of dumping long raw URLs. Keep labels explicit and easy to scan.
+**URL / path formatting rule (required):** print `Label: https://…` or `Label: /absolute/local/path` with the URL/path visible. Do **not** use markdown `[Label](url)` — sandwalk’s TUI cannot open those. Keep labels explicit and easy to scan.
+
 Use this standard label template whenever those URL types exist:
 
-- `[Dashboard](...)`
-- `[Public Share](...)` (only if public)
-- `[Py2DMol Viewer](...)`
-- `[FEL Plot](...)`, `[Radius of Gyration Plot](...)`
-- `[FEL CSV](...)`, `[Radius of Gyration CSV](...)`, `[Metrics JSON](...)`
-- `[Trajectory DCD](...)`, `[Topology PDB](...)`, `[Extracted Frame PDB](...)`
+- `Dashboard: https://…`
+- `Public Share: https://…` (only if public)
+- `Py2DMol Viewer: https://…`
+- `FEL Plot: https://…`, `Radius of Gyration Plot: https://…`
+- `FEL CSV: https://…`, `Radius of Gyration CSV: https://…`, `Metrics JSON: https://…`
+- `Trajectory DCD: https://…`, `Topology PDB: https://…`
+- `Extracted Frame PDB: <absolute local path>` when `--download` was used
 
-For any additional artifact, use its filename as the link label.
+For any additional artifact, use its filename as the label.
 
-1. **Fastfold Cloud dashboard (always)** — where the user can browse the run, view plots inline, and download artifacts. Share as a labeled markdown link:
-
-   ```
-   https://cloud.fastfold.ai/openmm/results/<workflow_id>
-   ```
-
-   If the workflow is public (`isPublic: true`), also share the shareable variant:
+1. **Fastfold Cloud dashboard (always)** — where the user can browse the run, view plots inline, and download artifacts:
 
    ```
-   https://cloud.fastfold.ai/openmm/results/<workflow_id>?shared=true
+   Dashboard: https://cloud.fastfold.ai/openmm/results/<workflow_id>
    ```
 
-2. **Py2DMol trajectory viewer (always)** — include the short context sentence, then share as a labeled markdown link:
+   If the workflow is public (`isPublic: true`), also share:
+
+   ```
+   Public Share: https://cloud.fastfold.ai/openmm/results/<workflow_id>?shared=true
+   ```
+
+2. **Py2DMol trajectory viewer (always)** — include the short context sentence, then:
 
    > Trajectory is available for this run to visualize simulation, generate animations, and use playback controls in Py2DMol.
 
    ```
-   https://cloud.fastfold.ai/py2dmol/new?from=openmm_workflow&workflow_id=<workflow_id>
+   Py2DMol Viewer: https://cloud.fastfold.ai/py2dmol/new?from=openmm_workflow&workflow_id=<workflow_id>
    ```
 
-3. **Individual plot/data URLs** — each `artifacts[].url` that ends in `.png` / `.svg` / `.csv` / `.json` should be shared as a labeled markdown link using the filename or metric name in the label.
+3. **Individual plot/data URLs** — each `artifacts[].url` that ends in `.png` / `.svg` / `.csv` / `.json` as `Filename: https://…`.
 
-`wait_for_workflow.py` and `fetch_results.py` emit the source URLs; format them into concise labeled markdown links when replying to users.
+`wait_for_workflow.py` and `fetch_results.py` emit the source URLs; format them as labeled bare URLs when replying to users.
 
 ## Workflow Status Values
 

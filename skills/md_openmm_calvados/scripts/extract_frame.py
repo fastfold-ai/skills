@@ -138,15 +138,20 @@ def main() -> None:
         if out_path.suffix.lower() != ".pdb":
             out_path = out_path.with_suffix(".pdb")
         _download_file(pdb_url, out_path)
-        downloaded_to = str(out_path)
+        downloaded_to = str(out_path.resolve())
 
     if args.json:
-        out = dict(payload)
+        out: dict = {}
         if downloaded_to:
+            out["local_paths"] = [downloaded_to]
             out["downloadedTo"] = downloaded_to
+        out.update(payload)
         print(json.dumps(out, indent=2, default=str))
         return
 
+    if downloaded_to:
+        print("DOWNLOADED_LOCAL_PATHS:")
+        print(downloaded_to)
     print(f"workflow_id: {workflow_id}")
     print(f"frame_index: {payload.get('frameIndex')}")
     print(f"requested_time_ns: {payload.get('requestedTimeNs')}")

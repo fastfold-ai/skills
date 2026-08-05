@@ -52,6 +52,8 @@ This skill bundles self-contained scripts under `scripts/` (stdlib only).
 2. Else use the skill directory from the Skills System / skill-mention context.
 3. Put downloads under `"$SANDWALK_SESSION_WORKSPACE"` when set.
 
+**Citing local files:** After `extract_frame.py … --download …` (or any save into the session workspace), copy every path from `local_paths` / `DOWNLOADED_LOCAL_PATHS:` / `downloaded_to` **verbatim** — full absolute paths, one per line. Never middle-truncate filenames or workflow ids. For remote URLs, print `Label: https://…` (bare URL), not markdown `[Label](url)`.
+
 Do **not** treat `/md_openmmdl`, `/skills/...`, or Modal `/workspace` as the install path.
 Do **not** hardcode `~/.sandwalk/...` or hunt with `find` / `locate`.
 
@@ -115,15 +117,15 @@ After completion, always provide:
 - Optional Py2DMol viewer:
   - `https://cloud.fastfold.ai/py2dmol/new?from=openmm_workflow&workflow_id=<workflow_id>`
 
-Prefer concise markdown link labels in agent responses (for example `[Dashboard](...)`, `[Py2DMol Viewer](...)`, `[RMSD CSV](...)`) instead of dumping very long raw URLs.
+Prefer `Label: https://…` (bare URL visible) — sandwalk cannot open markdown-hidden links.
 Use this standard label template whenever available:
 
-- `[Dashboard](...)`
-- `[Public Share](...)` (only if public)
-- `[Deep Analysis](...)`
-- `[Py2DMol Viewer](...)`
-- `[Extracted Frame PDB](...)` for extract-frame output
-- Artifact links by filename (for example `[rmsd.csv](...)`, `[metrics.json](...)`)
+- `Dashboard: https://…`
+- `Public Share: https://…` (only if public)
+- `Deep Analysis: https://…`
+- `Py2DMol Viewer: https://…`
+- `Extracted Frame PDB: <absolute local path from local_paths>` when `--download` was used
+- Artifact links by filename: `rmsd.csv: https://…`
 
 ## Defaults Guidance (when omitted)
 

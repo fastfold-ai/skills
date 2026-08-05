@@ -178,6 +178,8 @@ Artifact types: `rank<k>_<x>.cif` (ranked design #k structure), `all_designs_met
 
 After downloading, report the local `out_dir` paths plus the Composer/Mol* links. See `references/api_endpoints.md`.
 
+**Citing local files:** After `download` / `wait` auto-download, copy every path from `local_paths` or `DOWNLOADED_LOCAL_PATHS:` **verbatim** — full absolute paths, one per line. Never middle-truncate filenames or workflow ids. For remote URLs, print `Label: https://…` (bare URL visible), not markdown `[Label](url)`.
+
 ## Example-First Behavior (Required)
 
 When users ask for examples (especially natural prompts like "help me design a protein",
@@ -303,20 +305,19 @@ When presenting results to users, include:
 - individual Mol* links per candidate in this format:
   - `https://cloud.fastfold.ai/mol/<libraryItemId>?from=library`
 
-Use consistent markdown labels for links in user-facing responses:
+Use consistent labels with **bare URLs / absolute paths** (sandwalk TUI cannot open markdown-hidden links):
 
-- `[Composer Draft](...)`
-- `[Candidate #<rank> Mol*](...)` (browser viewer link)
-- `Candidate #<rank> CIF: <local downloaded path>` (from `download`/`wait`; do not link `/api/structure`)
-- `[Results Overview PDF](...)`
-- `[All Designs Metrics CSV](...)`
-- `[Final Designs Metrics CSV](...)`
+- `Composer Draft: https://…`
+- `Candidate #<rank> Mol*: https://cloud.fastfold.ai/mol/<libraryItemId>?from=library`
+- `Candidate #<rank> CIF: <absolute local path from local_paths>` (from `download`/`wait`; do not link `/api/structure`)
+- `Results Overview PDF: <absolute local path or https://…>`
+- `All Designs Metrics CSV: <absolute local path>`
+- `Final Designs Metrics CSV: <absolute local path>`
 
-For extra artifacts, use the artifact filename as the link label. For the actual structure
-files, prefer the local downloaded path; the Mol* link is a browser viewer, not a fetchable CIF.
+For the actual structure files, prefer the local downloaded absolute path; the Mol* link is a browser viewer, not a fetchable CIF.
 
 When the user wants the actual files (not just links), run `download` and report the
-local saved paths alongside these links — do not claim the files are browser-only.
+local saved paths from `local_paths` alongside these links — do not claim the files are browser-only.
 
 Interpretation guardrails:
 

@@ -123,6 +123,7 @@ def main() -> None:
 
     result = {
         "uniprot_id": uniprot_id,
+        "local_paths": [str(pdb_path), str(pae_path)],
         "pdb_path": str(pdb_path),
         "pae_path": str(pae_path),
         "source": {
@@ -138,6 +139,7 @@ def main() -> None:
         print(json.dumps(result, indent=2))
         return
 
+    print("DOWNLOADED_LOCAL_PATHS:")
     print(str(pdb_path))
     print(str(pae_path))
 

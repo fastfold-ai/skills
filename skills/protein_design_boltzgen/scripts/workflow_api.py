@@ -1450,8 +1450,15 @@ def _download_workflow_artifacts(
             )
 
     inventory = _build_inventory(downloaded)
-    payload = {
+    # local_paths first so agent tool-result truncation still surfaces absolutes.
+    local_paths = [
+        str(item["path"])
+        for item in downloaded
+        if isinstance(item, dict) and item.get("path")
+    ]
+    payload: dict[str, Any] = {
         "workflow_id": workflow_id,
+        "local_paths": local_paths,
         "composer_url": str(state.get("composer_url") or composer_url(ui_base, workflow_id)),
         "out_dir": str(out_dir),
         "artifact_count": len(items),
@@ -1462,7 +1469,13 @@ def _download_workflow_artifacts(
         "inventory": inventory,
     }
     if downloaded:
-        payload["inventory_files"] = _write_inventory_files(out_dir, payload)
+        inv_files = _write_inventory_files(out_dir, payload)
+        payload["inventory_files"] = inv_files
+        for key in ("markdown", "json"):
+            path = inv_files.get(key)
+            if path and path not in local_paths:
+                local_paths.append(path)
+        payload["local_paths"] = local_paths
     state["last_download"] = payload
     state["workflow_id"] = workflow_id
     state["api_base_url"] = api_base
@@ -1637,6 +1650,11 @@ def _print_download_payload(payload: dict[str, Any]) -> None:
     print(f"workflow_id={payload['workflow_id']}")
     print(f"out_dir={payload['out_dir']}")
     print(f"downloaded={payload['downloaded_count']} failed={payload['failed_count']}")
+    local_paths = payload.get("local_paths") or []
+    if local_paths:
+        print("DOWNLOADED_LOCAL_PATHS:")
+        for path in local_paths:
+            print(path)
     inventory_by_path = {e.get("path"): e for e in payload.get("inventory", [])}
     for item in payload.get("downloaded", []):
         described = inventory_by_path.get(item.get("path"), {})

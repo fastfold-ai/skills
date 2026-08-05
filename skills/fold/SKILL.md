@@ -94,6 +94,8 @@ The agent should run these scripts for the user, not hand them a list of command
 
 **Do not mark “save artifacts” complete until `--download-dir` (or `download_cif.py --dir`) succeeds and files exist under `$SANDWALK_SESSION_WORKSPACE/artifacts/…`.** Prefer `collect_artifacts.py` for discovery; affinity JSON is often embedded (not a URL) and is exported when `--download-dir` is set.
 
+**Citing downloads:** After `collect_artifacts.py … --download-dir …`, copy every path from the tool result’s `local_paths` (or `DOWNLOADED_LOCAL_PATHS:`) **verbatim** — full absolute paths, one per line. Never middle-truncate filenames or job ids (`output_..._model_0.cif` is wrong). Do not substitute relative stubs like `artifacts/fold/<id>/…` when absolute paths are available.
+
 ## Background Execution Protocol (Required)
 
 1. `create_job` in foreground (blocking) to obtain `job_id`.
@@ -188,7 +190,9 @@ Or: `python scripts/get_viewer_link.py <job_id>`
 
 ## Response Link Labels
 
-Prefer: `[Dashboard]`, `[Primary CIF]` / `[Primary PDB]`, `[PAE Plot]` / `[pLDDT Plot]` / `[MSA Coverage Plot]`, `[Fold Metrics JSON]`, `[Affinity Results JSON]` (Boltz-2 or Nesso). Otherwise use the filename.
+For **remote URLs**, print a short label plus the **full URL on the same line** (e.g. `Viewer: https://cloud.fastfold.ai/job/<id>?shared=true`). Prefer labels: Dashboard, Primary CIF/PDB, PAE/pLDDT/MSA plot, Fold Metrics JSON, Affinity Results JSON. Do not hide URLs behind markdown link titles.
+
+For **local downloads**, print the absolute path from `local_paths` (see above), not a shortened basename.
 
 ## Security Guardrails
 

@@ -403,6 +403,9 @@ def main() -> None:
     safe_links = [item for item in artifact_links if item.get("safe_to_download")]
     unsafe_links = [item for item in artifact_links if not item.get("safe_to_download")]
 
+    # Keep local_paths / downloads near the top of JSON so agent tool-result
+    # truncation (often ~1500 chars/field) still surfaces absolute file paths
+    # before the long CloudFront URL list in ``artifacts``.
     payload: dict = {
         "job_id": job_id,
         "status": job_info.get("status"),
@@ -410,31 +413,44 @@ def main() -> None:
         "artifact_count": len(artifact_links),
         "safe_artifact_count": len(safe_links),
         "unsafe_artifact_count": len(unsafe_links),
-        "artifacts": artifact_links,
         "embedded_artifact_count": len(embedded_artifacts),
-        "embedded_artifacts": [
-            {
-                "label": item["label"],
-                "source_path": item["source_path"],
-                "suggested_file_name": item["suggested_file_name"],
-                "keys": sorted(item.get("content", {}).keys()),
-            }
-            for item in embedded_artifacts
-        ],
     }
 
     if args.download_dir:
+        download_dir = Path(args.download_dir).expanduser()
         download_summary = download_artifacts(
             artifact_links,
-            download_dir=Path(args.download_dir).expanduser(),
+            download_dir=download_dir,
             max_bytes=args.max_bytes,
         )
         embedded_written = write_embedded_artifacts(
             embedded_artifacts,
-            download_dir=Path(args.download_dir).expanduser(),
+            download_dir=download_dir,
         )
+        local_paths = [
+            str(item["path"])
+            for item in (download_summary.get("downloaded") or [])
+            if isinstance(item, dict) and item.get("path")
+        ]
+        local_paths.extend(
+            str(item["path"])
+            for item in embedded_written
+            if isinstance(item, dict) and item.get("path")
+        )
+        payload["local_paths"] = local_paths
         payload["downloads"] = download_summary
         payload["embedded_downloads"] = embedded_written
+
+    payload["artifacts"] = artifact_links
+    payload["embedded_artifacts"] = [
+        {
+            "label": item["label"],
+            "source_path": item["source_path"],
+            "suggested_file_name": item["suggested_file_name"],
+            "keys": sorted(item.get("content", {}).keys()),
+        }
+        for item in embedded_artifacts
+    ]
 
     if args.json:
         print(json.dumps(payload, indent=2))
@@ -449,27 +465,23 @@ def main() -> None:
     if unsafe_links:
         print(f"unsafe_artifacts: {payload['unsafe_artifact_count']}")
 
+    # Paths before URLs — survives early truncation when agents skim stdout.
+    if args.download_dir and isinstance(payload.get("local_paths"), list):
+        print("DOWNLOADED_LOCAL_PATHS:")
+        for path in payload["local_paths"]:
+            print(path)
+        print(f"downloaded: {len(payload['local_paths'])}")
+        failed = (payload.get("downloads") or {}).get("failed") or []
+        if failed:
+            print(f"download_failed: {len(failed)}")
+            for item in failed:
+                print(f"  - {item.get('label')}: {item.get('error')}")
+
     for item in artifact_links:
         marker = "SAFE" if item.get("safe_to_download") else "UNSAFE"
         print(f"- {marker} {item['label']}: {item['url']}")
         if not item.get("safe_to_download"):
             print(f"  reason: {item.get('unsafe_reason')}")
-
-    if args.download_dir and isinstance(payload.get("downloads"), dict):
-        downloaded = payload["downloads"].get("downloaded", [])
-        failed = payload["downloads"].get("failed", [])
-        print(f"downloaded: {len(downloaded)}")
-        for item in downloaded:
-            print(f"  - {item['label']}: {item['path']}")
-        if failed:
-            print(f"download_failed: {len(failed)}")
-            for item in failed:
-                print(f"  - {item['label']}: {item['error']}")
-        embedded_written = payload.get("embedded_downloads", [])
-        if isinstance(embedded_written, list) and embedded_written:
-            print(f"embedded_written: {len(embedded_written)}")
-            for item in embedded_written:
-                print(f"  - {item['label']}: {item['path']}")
 
 
 if __name__ == "__main__":
