@@ -18,6 +18,11 @@ boltz-api <resource> run --input @yaml://<file>.yaml \
 Run the estimate and wait for explicit approval before the execute step; don't run both in one turn.
 Each example below gives a payload file and its resource — plug them into the pattern above.
 
+**These are smoke tests, not campaigns.** The design examples use the `num_proteins` /
+`num_molecules` floor (10) so a first run is cheap. A real de novo campaign is 20,000-100,000
+designs — see Run sizing in SKILL.md and propose a tier before submitting production work.
+Residue indices in every example are 0-based.
+
 Named targets in prompts/run names are aligned with BoltzMol/BoltzProt public materials
 (for example: ROR1, MRGPRX2, GLP2R, PknB, AMBP, IDI2, MZB1, PMVK).
 To keep runs fast and cheap, payloads use real UniProt-backed target sequence fragments
@@ -136,7 +141,8 @@ target:
     A: [10, 11, 12]
 binder_specification:
   type: boltz_curated
-  modality: nanobody
+  # No `modality` here — `binder` carries it. Adding modality/entities/
+  # structure/chain_selection to boltz_curated is rejected.
   binder: boltz_nanobody
 num_proteins: 10
 ```
@@ -310,6 +316,24 @@ molecule_filters:
 
 Commands:
 - Resource `small-molecule:library-screen`, payload `payload.sm.screen.glp2r.filters.yaml`, slug `sms-glp2r-filters-demo` — estimate → run as in the intro.
+
+### Library from a file
+
+A user's library usually arrives as a CSV, `.smi`, or `.txt` rather than inline SMILES.
+Normalize it into `molecules` yourself — auto-detect the SMILES column, carry any identifier
+column into `id`, and tell the user how many molecules you parsed before estimating:
+
+```yaml
+# from library.csv with columns: compound_id,smiles,source
+molecules:
+  - smiles: CC(=O)OC1=CC=CC=C1C(=O)O
+    id: CMPD-0001
+  - smiles: CC(C)Cc1ccc(cc1)C(C)C(=O)O
+    id: CMPD-0002
+```
+
+Always set `id`: it comes back as `external_id` on each result, which is the only reliable way
+to map hits to inputs and to spot molecules that were filtered out or failed validation.
 
 ## 6) ADME (`adme`)
 
