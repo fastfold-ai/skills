@@ -8,6 +8,54 @@ and the catalog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+
+- `boltz`: run sizing guidance for de novo design — 20k / 50k / 100k tiers with
+  50,000 as the recommended default, and an explicit warning that the
+  `num_proteins` floor of 10 is a smoke test rather than a campaign.
+- `boltz`: `references/target_exploration.md` — optional pre-design scouting pass
+  that compares crop / epitope / domain framings with 50-design runs, picks a
+  winner by max `binding_confidence`, and sizes the full campaign from its yield.
+  Adapted from boltz-bio/boltz-api-skills (MIT), kept dependency-free.
+- `boltz`: per-mode payload schemas in `references/api.md` — entity shape,
+  `binding` variants, all three `binder_specification` variants, the designed-protein
+  sequence DSL, `rules`, `molecule_filters`, `target` variants, and the
+  `num_proteins` 10-1,000,000 range.
+- `boltz`: ranking guidance — `binding_confidence` desc with `iptm` /
+  `min_interaction_pae` tiebreakers, `optimization_score` not emitted for
+  `protein:design`, and the designed binder returning as `type: "protein"`.
+- `boltz`: async submit path (`start --raw-output --transform id` ->
+  `download-results` -> `download-status`) alongside the existing blocking `run`,
+  with per-mode poll intervals and non-blocking launch guidance.
+- `boltz`: device-code authentication (`boltz-api auth status` /
+  `auth login --device-code`) as an alternative to `BOLTZ_API_KEY`, plus
+  `boltz-api --version`, the Windows PowerShell installer, and CLI update handling.
+- `boltz`: library normalization guidance for small-molecule screens (CSV / `.smi`
+  / `.txt`), and setting per-item `id` so results carry `external_id` for
+  reconciling filtered-out inputs.
+- `boltz`: ADME pricing ($0.01/molecule) and `--workspace-id` for admin keys.
+
+### Changed
+
+- `boltz`: hardened the spending gate — a fresh explicit approval is required for
+  every billable submit (an earlier plan or phase approval does not carry over),
+  the gate still applies under auto-accept / bypass modes, and no dollar figure may
+  be quoted or extrapolated unless `estimate-cost` returned it.
+
+### Fixed
+
+- `boltz`: the curated nanobody example sent `modality` inside a `boltz_curated`
+  `binder_specification`, which the API rejects — `binder` carries the modality.
+- `boltz`: `references/results.md` documented one run layout for all modes.
+  `sab` / `adme` write `outputs/archive.tar.gz`; design and screen write `results/`
+  with an `index.jsonl` that was previously undocumented.
+- `boltz`: documented the nested `metrics.json` shape for structure-and-binding
+  (`best_sample.metrics`, top-level `binding_metrics`) instead of implying flat keys.
+- `boltz`: added the payload rules behind opaque `400 VALIDATION_ERROR` responses —
+  `value` vs `sequence`, `chain_ids` vs `chain_id`, 0-based residue indices,
+  flat `binding` block, `@yaml://` / `@json://` / `@data://` input forms, absolute
+  paths, and keeping calls top-level in permission-gated runtimes.
+
 ## [1.1.5] - 2026-08-05
 
 ### Changed

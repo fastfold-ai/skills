@@ -84,10 +84,12 @@ Drives the official `boltz-api` CLI directly for:
 - You need run recovery and durable artifact persistence
 
 **Key runtime behavior:**
-- Always estimates cost and waits for explicit user approval before any billable submit
-- Installs `boltz-api` via the official Boltz installer when missing (`curl -fsSL https://install.boltz.bio/boltz-api/install.sh | sh`)
+- Always estimates cost and waits for a fresh explicit approval before every billable submit — including in auto-accept / bypass modes, where the skill is the only cost gate
+- Installs `boltz-api` via the official Boltz installer when missing (`curl -fsSL https://install.boltz.bio/boltz-api/install.sh | sh`; PowerShell `irm https://install.boltz.bio/boltz-api/install.ps1 | iex`)
 - Downloads into `/tmp/boltz-runs/<slug>` (the `/workspace` mount is S3-backed, not POSIX), then persists with `scripts/persist.sh`
 - Recovers from the API by `idempotency_key` instead of re-submitting a billable job
+- Proposes campaign sizing tiers for de novo design (20k / 50k / 100k) instead of the 10-design floor, and offers a target-exploration scouting pass for new targets
+- Carries the payload gotchas that cause opaque `400 VALIDATION_ERROR`s: `value`/`chain_ids` entity shape, 0-based residue indices, flat `binding` block, `@yaml://` / `@data://` input forms
 
 **Scripts:**
 - `persist.sh` – S3-safe copy of a finished run directory from `/tmp/boltz-runs/<slug>` to `/workspace/boltz-artifacts/boltz/<slug>/`
@@ -101,8 +103,11 @@ Drives the official `boltz-api` CLI directly for:
 
 Reference examples:
 - [skills/boltz/references/examples.md](https://github.com/fastfold-ai/skills/blob/main/skills/boltz/references/examples.md)
+- [skills/boltz/references/api.md](https://github.com/fastfold-ai/skills/blob/main/skills/boltz/references/api.md) — per-mode payload schemas and raw HTTP endpoints
+- [skills/boltz/references/results.md](https://github.com/fastfold-ai/skills/blob/main/skills/boltz/references/results.md) — run layout, ranking, persistence and recovery
+- [skills/boltz/references/target_exploration.md](https://github.com/fastfold-ai/skills/blob/main/skills/boltz/references/target_exploration.md) — pre-design scouting pass
 
-**Requires:** `BOLTZ_API_KEY` in the sandbox/runtime environment.
+**Requires:** `BOLTZ_API_KEY` in the sandbox/runtime environment (device-code login via `boltz-api auth login --device-code` also works on interactive machines).
 If missing, configure provider access at [Fastfold Boltz Provider](https://cloud.fastfold.ai/integrations/providers?provider=boltz), create/get a key at [Boltz Console](https://api.boltz.bio/console), and restart the sandbox.
 
 ### fold
